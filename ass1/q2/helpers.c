@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+
 #define YES 1
 #define NO 0
 
@@ -26,7 +28,7 @@ int getCommentEnd(char *buffer, int start)
 
 /* Processes passed line (buffer) from specified index (start).
 Writes to FILE* fout. */
-int processLine(char *buffer, int start, FILE *fout, int *isComment)
+void processComments(char *buffer, int start, FILE *fout, int *isComment)
 {
     for (int i = start; i < strlen(buffer); i++)
     {
@@ -86,4 +88,146 @@ int processLine(char *buffer, int start, FILE *fout, int *isComment)
             // till a non-space is detected.
         }
     }
+    return;
+}
+
+/* Returns the first non-space character's index starting from `start` */
+int getNonSpace(char *buffer, int start)
+{
+    for (int i = start; i < strlen(buffer); i++)
+    {
+        if (buffer[i] != ' ')
+            return i;
+    }
+
+    // rest of the line is all spaces, return -1.
+    return -1;
+}
+
+/* Remove redundant spaces from the passed line and 
+write a clean line to FILE* fout. */
+void processRedunSpaces(char *buffer, FILE *fout)
+{
+    for (int i = 0; i < strlen(buffer); i++)
+    {
+        if (buffer[i] == ' ')
+        {
+            // i-th character is a space
+            if ((i + 1) < strlen(buffer))
+            {
+                if (buffer[i + 1] == ' ')
+                {
+                    // if the the next character is also
+                    // a space, get the first non-space character.
+                    int idx = getNonSpace(buffer, i + 2);
+                    if (idx == -1)
+                    {
+                        // rest of the line is all spaces.
+                        // put one space and read the next line.
+                        fputc(' ', fout);
+                        break;
+                    }
+                    else
+                    {
+                        fputc(' ', fout);
+                        // first non space character is at idx
+                        i = idx - 1;
+                    }
+                }
+                else
+                {
+                    // it was an isolated space
+                    fputc(' ', fout);
+                }
+            }
+            else
+            {
+                fputc(' ', fout);
+            }
+        }
+        else
+        {
+            // non-space characters printed as usual.
+            fputc(buffer[i], fout);
+        }
+    }
+    return;
+}
+
+/* Fills start and end indices of non space characters for the passed buffer */
+void getLineIndices(char *buffer, int *indices, int *appendNewLine)
+{
+    indices[0] = 0;
+    indices[1] = strlen(buffer) - 1;
+    for (int i = 0; i < strlen(buffer); i++)
+    {
+        if (buffer[i] == ' ' || buffer[i] == '\t')
+            ;
+        else
+        {
+            indices[0] = i;
+            break;
+        }
+    }
+    if (buffer[strlen(buffer) - 1] == '\n')
+    {
+        for (int i = strlen(buffer) - 1; i >= 0; i--)
+        {
+            if (buffer[i] == ' ' || buffer[i] == '\t' || buffer[i] == '\n')
+                ;
+            else
+            {
+                indices[1] = i;
+                *appendNewLine = YES;
+                break;
+            }
+        }
+    }
+    else
+    {
+        for (int i = strlen(buffer) - 1; i >= 0; i--)
+        {
+            if (buffer[i] == ' ' || buffer[i] == '\t')
+                ;
+            else
+            {
+                indices[1] = i;
+                break;
+            }
+        }
+    }
+
+    return;
+}
+
+/* Ignores empty lines and cleans up leading and trailing spaces.*/
+void cleanupLine(char *buffer, FILE *fout)
+{
+    printf("[%ld] ", strlen(buffer));
+    int *indices = (int *)malloc(2 * sizeof(int));
+    int *appendNewLine = (int *)malloc(sizeof(int));
+    *appendNewLine = NO;
+
+    getLineIndices(buffer, indices, appendNewLine);
+   
+    if (indices[1] == indices[0])
+    {
+        // if the line contains only a newline character.
+        // don't output anything for that line.
+        if (buffer[indices[0]] == '\n')
+        {
+            free(appendNewLine);
+            free(indices);
+            return;
+        }
+    }
+    for (int i = indices[0]; i <= indices[1]; i++)
+    {
+        fputc(buffer[i], fout);
+    }
+    if (*appendNewLine == YES)
+        fputc('\n', fout);
+    free(appendNewLine);
+    free(indices);
+    return;
 }

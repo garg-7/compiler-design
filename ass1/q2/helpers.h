@@ -1,2 +1,5 @@
-int getCommentEnd(char *, int );
-int processLine(char *, int , FILE *, int *);
+int getCommentEnd(char *, int);
+void processComments(char *, int, FILE *, int *);
+int getNonSpace(char *, int);
+void processRedunSpaces(char *, FILE *);
+void cleanupLine(char *, FILE *);
