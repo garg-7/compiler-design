@@ -1,0 +1,22 @@
+#include  <stdio.h>       	
+
+/* this is a multi line comment  
+isn't it     
+*/
+
+		 
+
+
+		p dccwece
+random     
+
+int main()
+
+{    
+    peek
+    char ch[] =  " there    are more \ 
+    merry days";  "      can     ";  "can \
+    this   be  handled        somehow  \
+    ";	
+    return /* try this */    0; // Hello 
+}    

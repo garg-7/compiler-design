@@ -1,0 +1,12 @@
+#include <stdio.h>
+p dccwece
+random
+int main()
+{
+peek
+char ch[] = " there    are more \
+    merry days"; "      can     "; "can \
+    this   be  handled        somehow  \
+    ";
+return 0;
+}
