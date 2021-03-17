@@ -8,7 +8,6 @@
 /* Returns if and where the comment ends*/
 int getCommentEnd(char *buffer, int start)
 {
-
     for (int i = start; i < strlen(buffer); i++)
     {
         if (buffer[i] == '*')
@@ -104,13 +103,53 @@ int getNonSpace(char *buffer, int start)
     return -1;
 }
 
+/* Returns index of quotes starting from index start. */
+int getQuotesEnd(char *buffer, int start)
+{
+    for (int i = start; i < strlen(buffer); i++)
+    {
+        if (buffer[i] == '"')
+            return i;
+    }
+
+    // quotes don't end on current line end, so return -1.
+    return -1;
+}
+
 /* Remove redundant spaces from the passed line and 
 write a clean line to FILE* fout. */
-void processRedunSpaces(char *buffer, FILE *fout)
+void processRedunSpaces(char *buffer, int start, FILE *fout, int *isInQuotes)
 {
-    for (int i = 0; i < strlen(buffer); i++)
+    for (int i = start; i < strlen(buffer); i++)
     {
-        if (buffer[i] == ' ')
+        if (buffer[i] == '"')
+        {
+            // double quotes have started.
+            // find out where they end.
+            int idx = getQuotesEnd(buffer, i + 1);
+            if (idx == -1)
+            {
+                // no closing quotes found.
+                // still in string so, copy as is.
+                for (int j = i; j < strlen(buffer); j++)
+                {
+                    fputc(buffer[j], fout);
+                }
+                *isInQuotes = YES; // next line begins in quotes.
+                return;
+            }
+            else
+            {
+                // some closing quotes were found.
+                *isInQuotes = NO; // next line is not in quotes
+                for (int j = i; j <= idx; j++)
+                {
+                    fputc(buffer[j], fout);
+                }
+                i = idx;
+            }
+        }
+        else if (buffer[i] == ' ')
         {
             // i-th character is a space
             if ((i + 1) < strlen(buffer))
@@ -201,15 +240,15 @@ void getLineIndices(char *buffer, int *indices, int *appendNewLine)
 }
 
 /* Ignores empty lines and cleans up leading and trailing spaces.*/
-void cleanupLine(char *buffer, FILE *fout)
+void cleanupLine(char *buffer, FILE *fout, int *isWithinQuotes)
 {
-    printf("[%ld] ", strlen(buffer));
+    // printf("[%ld] ", strlen(buffer));
     int *indices = (int *)malloc(2 * sizeof(int));
     int *appendNewLine = (int *)malloc(sizeof(int));
     *appendNewLine = NO;
 
     getLineIndices(buffer, indices, appendNewLine);
-   
+
     if (indices[1] == indices[0])
     {
         // if the line contains only a newline character.
@@ -221,12 +260,62 @@ void cleanupLine(char *buffer, FILE *fout)
             return;
         }
     }
+    int quoteCount = 0;
     for (int i = indices[0]; i <= indices[1]; i++)
     {
+        if (buffer[i] == '"')
+            quoteCount += 1;
+
         fputc(buffer[i], fout);
     }
+
     if (*appendNewLine == YES)
         fputc('\n', fout);
+
+    if ((quoteCount % 2) == 1)
+        *isWithinQuotes = YES;
+
+    free(appendNewLine);
+    free(indices);
+    return;
+}
+
+/* Clean trainling spaces for a line that starts within quotes.*/
+void cleanupLeftoverLine(char *buffer, FILE *fout, int *isWithinQuotes)
+{
+    // printf("[%ld] ", strlen(buffer));
+    int *indices = (int *)malloc(2 * sizeof(int));
+    int *appendNewLine = (int *)malloc(sizeof(int));
+    *appendNewLine = NO;
+
+    getLineIndices(buffer, indices, appendNewLine);
+
+    if (indices[1] == indices[0])
+    {
+        // if the line contains only a newline character.
+        // don't output anything for that line.
+        if (buffer[indices[0]] == '\n')
+        {
+            free(appendNewLine);
+            free(indices);
+            return;
+        }
+    }
+    int quoteCount = 0;
+    for (int i = 0; i <= indices[1]; i++)
+    {
+        if (buffer[i] == '"')
+            quoteCount += 1;
+
+        fputc(buffer[i], fout);
+    }
+
+    if (*appendNewLine == YES)
+        fputc('\n', fout);
+
+    if (quoteCount % 2 != 0)
+        *isWithinQuotes = YES;
+
     free(appendNewLine);
     free(indices);
     return;

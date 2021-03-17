@@ -82,8 +82,9 @@ int main(int argc, char *argv[])
         f = fopen("temp1.txt", "r");
         fout = fopen("temp2.txt", "w");
 
-        int *isWithinString = (int *)malloc(sizeof(int));
-        *isWithinString = NO;
+        int *isWithinQuotes = (int *)malloc(sizeof(int));
+        *isWithinQuotes = NO;
+
         while (1)
         {
 
@@ -99,7 +100,28 @@ int main(int argc, char *argv[])
             // printf("%ld\n", strlen(singleLine));
             // exit(0);
             // printf("lp: [%s]\n", singleLine);
-            processRedunSpaces(singleLine, fout);
+            if (*isWithinQuotes == NO)
+            {
+                processRedunSpaces(singleLine, 0, fout, isWithinQuotes);
+            }
+            else
+            {
+                int idx = getQuotesEnd(singleLine, 0);
+                if (idx == -1)
+                {
+                    *isWithinQuotes = YES; // next line starts within quotes
+                    for (int i = 0; i < strlen(singleLine); i++)
+                        fputc(singleLine[i], fout);
+                }
+                else
+                {
+                    // some idx was returned, process from there.
+                    *isWithinQuotes = NO; // next line doesn't start within quotes
+                    for (int i = 0; i <= idx; i++)
+                        fputc(singleLine[i], fout);
+                    processRedunSpaces(singleLine, idx + 1, fout, isWithinQuotes);
+                }
+            }
         }
 
         fclose(f);
@@ -111,6 +133,7 @@ int main(int argc, char *argv[])
         f = fopen("temp2.txt", "r");
         fout = fopen("output.txt", "w");
 
+        *isWithinQuotes = NO;
         while (1)
         {
             check = fgets(singleLine, MAX_LINE_LENGTH, f);
@@ -121,7 +144,36 @@ int main(int argc, char *argv[])
                 break;
             }
 
-            cleanupLine(singleLine, fout);
+            if (*isWithinQuotes == NO)
+            {
+                cleanupLine(singleLine, fout, isWithinQuotes);
+            }
+            else
+            {
+                int idx = getQuotesEnd(singleLine, 0);
+                if (idx == -1)
+                {
+                    *isWithinQuotes = YES; // next line starts within quotes
+                    for (int i = 0; i < strlen(singleLine); i++)
+                        fputc(singleLine[i], fout);
+                }
+                else
+                {
+                    // some idx was returned, process from there.
+                    *isWithinQuotes = NO; // next line doesn't start within quotes
+                    for (int i = 0; i <= idx; i++)
+                        fputc(singleLine[i], fout);
+
+                    char *newBuffer = (char *)malloc(MAX_LINE_LENGTH * sizeof(char));
+                    int lenBuf = 0;
+
+                    for (int i = idx + 1; i < strlen(singleLine); i++)
+                        newBuffer[lenBuf++] = singleLine[i];
+
+                    cleanupLeftoverLine(newBuffer, fout, isWithinQuotes);
+                    free(newBuffer);
+                }
+            }
         }
 
         fclose(f);
