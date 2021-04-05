@@ -101,6 +101,4 @@ int main()
        free(curr);
     printf("Number of negative numbers: %d\n", cNeg);
     printf("Number of positive numbers: %d\n", cPos);
-    printf("Number of decimal numbers: %d\n", cDec);
-
 }
