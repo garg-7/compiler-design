@@ -68,4 +68,5 @@ int main()
             }
         }
     }
+    free(curr);
 }
