@@ -26,7 +26,23 @@
                     printf("Not a valid number [code: 3].\n");
                     return -10;
                 }
-<S3><<EOF>>     return 0;
+<S3><<EOF>>     {
+                    printf("Number obtained: %s\n", curr);
+                    printf("Number of digits = %d\n", len);
+                    long long sum = 0;
+                    for(int i=0;i<len;i++){
+                        sum += (long long)pow(curr[i]-'0', len);
+                    }
+                    /* printf("Sum: %lld\n", sum); */
+                    if (sum==atoi(curr)){
+                        printf("Entered number is an Armstrong number.\n");
+                    }
+                    else {
+                        printf("Sum of digits powered by %d: %lld\n", len, sum);
+                        printf("Entered number is NOT an Armstrong number.\n");
+                    }
+                    return 0;
+                }
 <S3>.           |
 <S3>"\n"        {
                     printf("Not a valid number [code: 4].\n");
@@ -51,21 +67,5 @@ int main()
     else {
         if (len==0)
         printf("No number found.\n");
-        else{
-            printf("Number obtained: %s\n", curr);
-            printf("Number of digits = %d\n", len);
-            long long sum = 0;
-            for(int i=0;i<len;i++){
-                sum += (long long)pow(curr[i]-'0', len);
-            }
-            /* printf("Sum: %lld\n", sum); */
-            if (sum==atoi(curr)){
-                printf("Entered number is an Armstrong number.\n");
-            }
-            else {
-                printf("Sum of digits powered by %d: %lld\n", len, sum);
-                printf("Entered number is NOT an Armstrong number.\n");
-            }
-        }
     }
 }
