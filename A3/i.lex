@@ -7,12 +7,12 @@
 %}
 %x S
 %%
-[a-z|A-Z]       {BEGIN(S); curr[len] = yytext[0]; 
+[a-zA-Z]       {BEGIN(S); curr[len] = yytext[0]; 
                     begin = 1; len = 1;}
 .               ;
 "\n"            ;
-<S>[a-z|A-Z]    {curr[len] = yytext[0]; len +=1; }
-<S>[^(a-z|A-Z)] {
+<S>[a-zA-Z]    {curr[len] = yytext[0]; len +=1; }
+<S>[^(a-zA-Z)] {
                     curr[len] = '\0';
                     // fprintf(stderr, "Length of current word: %d\n", len);
                     if (len > maxLen){

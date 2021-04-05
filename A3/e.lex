@@ -4,11 +4,11 @@
 %}
 %x S
 %%
-[a-z|A-Z]       {BEGIN(S); begin = 1;}
+[a-zA-Z]       {BEGIN(S); begin = 1;}
 .               ;
 "\n"            ;
-<S>[a-z|A-Z]    ;
-<S>[^(a-z|A-Z)] {BEGIN(INITIAL); c++; begin = 0;}
+<S>[a-zA-Z]    ;
+<S>[^(a-zA-Z)] {BEGIN(INITIAL); c++; begin = 0;}
 %%
 
 int main()

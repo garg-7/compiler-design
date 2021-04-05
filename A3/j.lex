@@ -9,12 +9,12 @@
 %}
 %x S
 %%
-[a-z|A-Z]       {BEGIN(S); curr[len] = yytext[0];
+[a-zA-Z]       {BEGIN(S); curr[len] = yytext[0];
                     begin = 1; len = 1;}
 .               ;
 "\n"            ;
-<S>[a-z|A-Z]    {curr[len] = yytext[0]; len ++;}
-<S>[^(a-z|A-Z)] {
+<S>[a-zA-Z]    {curr[len] = yytext[0]; len ++;}
+<S>[^(a-zA-Z)] {
                     curr[len] = '\0';
                     // fprintf(stderr, "Current word: %s\n", curr);
                     if (strcmp(curr, word)==0) {

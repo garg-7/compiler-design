@@ -5,8 +5,8 @@
 %}
 %x S1
 %%
-[^(a-z|A-Z| |\t|\n)]        { c1 ++; REJECT; }
-[a-z|A-Z]           {
+[^(a-zA-Z \t\n)]        { c1 ++; REJECT; }
+[a-zA-Z]           {
                         // to handle the first letter in the file
                         if (c==0 && c1==0) {
                             char ch = yytext[0];
@@ -27,7 +27,7 @@
                         BEGIN(S1);
                         ECHO;
                     }
-<S1>[a-z|A-Z]       {
+<S1>[a-zA-Z]       {
                         char ch = yytext[0];
                         if (islower(ch)) {
                             fprintf(stderr, "'%c' was lower case\n", yytext[0]);

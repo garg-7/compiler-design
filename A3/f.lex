@@ -5,11 +5,11 @@
 %}
 %x S
 %%
-[a-z|A-Z]       {BEGIN(S); begin = 1; len = 1;}
+[a-zA-Z]       {BEGIN(S); begin = 1; len = 1;}
 .               ;
 "\n"            ;
-<S>[a-z|A-Z]    len ++;
-<S>[^(a-z|A-Z)] {
+<S>[a-zA-Z]    len ++;
+<S>[^(a-zA-Z)] {
                     BEGIN(INITIAL);
                     fprintf(stderr, "Length of current word: %d\n", len);
                     if (len > 5 && len < 10)
