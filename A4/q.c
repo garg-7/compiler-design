@@ -79,10 +79,9 @@ int main()
     if (terminals.values == NULL)
         printf("MALLOC failed.\n");
 
-    
-
     char **p = (char **)malloc(n * sizeof(char *));
-
+    char **p_copy = (char **)malloc(n * sizeof(char *));
+    
     for (int i = 0; i < nonTerminals.max_size; i++)
     {
         nonTerminals.values[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
@@ -105,9 +104,11 @@ int main()
     {
         printf("%dth: ", i);
         p[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+        p_copy[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
         fscanf(stdin, "%[^\n]s", p[i]);
         getchar();
         p[i][strlen(p[i])] = '\0';
+        strcpy(p_copy[i], p[i]);
     }
 
     for(int i=0;i<n;i++){
@@ -119,14 +120,13 @@ int main()
         if (checkPresence(&nonTerminals, token) == false)
             addElement(&nonTerminals, token);
     }
-    printf("FINEc.\n");
-    strtok("sdcd ew ecwe",              " ");
+    for(int i=0;i<n;i++){
+        printf("%s\n", p_copy[i]);
+    }
     for(int i=0;i<n;i++){
         int count = 0;
         char *token = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
-        printf("FINE.\n");
-        token = strtok(p[i], "->");
-        printf("{%d}", strlen(token));
+        token = strtok(p_copy[i], "->");
         token[strlen(token)] = '\0';
         while (token != NULL)
         {
@@ -158,6 +158,8 @@ int main()
             // printf(":%s:", token);
         }
     }
+
+    free(p_copy);
     printf("The set of non-terminals:\n");
     for (int i = 0; i < nonTerminals.max_size; i++)
     {
@@ -171,8 +173,7 @@ int main()
         if (terminals.values[i][0] != '\0')
             printf("%s\n", terminals.values[i]);
     }
-    free(nonTerminals.values);
-    free(terminals.values);
 
     // calculating the FIRST set for all the non-terminals
+    
 }
