@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #define MAX_UNIT_SIZE 100
+#define MAX_NUM_TERMINALS 50
 
 typedef struct set
 {
@@ -11,7 +12,7 @@ typedef struct set
     int max_size;
 } set;
 
-int checkPresence(set *s, char *el)
+int isPresent(set *s, char *el)
 {
     printf("Checking for %s.\n", el);
     for (int i = 0; i < (s->max_size); i++)
@@ -30,12 +31,13 @@ void addElement(set *s, char *el)
     // printf("%d\n", s->max_size);
     for (int i = 0; i < (s->max_size); i++)
     {
-        if (s->values[i][0]=='\0')
+        if (strcmp(s->values[i], "") == 0)
         {
             strcpy(s->values[i], el);
             printf("%s added.\n", el);
             return;
         }
+        printf("%dth position is full.\n", i);
     }
 
     printf("[ERROR] No space in the set to enter %s.\n", el);
@@ -59,6 +61,77 @@ void removeElement(set *s, char *el)
     exit(2);
 }
 
+// !! IMPORTANT: source must be NULL-terminated. !!
+int getToken(char *source, char *tok, int *loc)
+{
+    int currSpaceNum = 0;
+    int count = 0;
+    // printf("value of loc: %d", *loc);
+    // for(int i=0;;i++){
+    //     if (source[i]!='\0')
+    //     printf(":%c:", source[i]);
+    //     else
+    //     break;
+    // }
+    // exit(1);
+    for (int i = 0;; i++)
+    {
+        if (source[i] != ' ' && source[i] != 0)
+        {
+            if (currSpaceNum == *loc)
+            {
+                // printf("adding %c\n", source[i]);
+                tok[count] = source[i];
+                count += 1;
+            }
+            else
+            {
+                // printf("ignoring %c\n", source[i]);
+            }
+        }
+        else if (source[i] == ' ')
+        {
+            currSpaceNum += 1;
+            // printf("got space\n");
+            if (count > 0)
+            {
+                // printf("token filled, returning\n");
+                *loc += 1;
+                tok[count] = '\0';
+                return 0;
+            }
+        }
+        else if (source[i] == '\0')
+        {
+            // printf("got null\n");
+            if (count > 0)
+            {
+                // printf("token filled, returning\n");
+                *loc += 1;
+                tok[count] = '\0';
+                return 0;
+            }
+            return -1;
+        }
+        // if (i==50)break;
+    }
+    return -1;
+}
+
+void printSet(set *s)
+{
+    printf("{");
+    for (int i = 0; i < s->max_size; i++)
+    {
+        if (strcmp(s->values[i], "") != 0)
+        {
+            printf(" [%s] ", s->values[i]);
+        }
+    }
+    printf("}\n");
+    return;
+}
+
 int main()
 {
     int n = 0;
@@ -74,14 +147,13 @@ int main()
     if (nonTerminals.values == NULL)
         printf("MALLOC failed.\n");
 
-    terminals.max_size = MAX_UNIT_SIZE;
+    terminals.max_size = MAX_NUM_TERMINALS;
     terminals.values = (char **)malloc(terminals.max_size * sizeof(char *));
     if (terminals.values == NULL)
         printf("MALLOC failed.\n");
 
     char **p = (char **)malloc(n * sizeof(char *));
-    char **p_copy = (char **)malloc(n * sizeof(char *));
-    
+
     for (int i = 0; i < nonTerminals.max_size; i++)
     {
         nonTerminals.values[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
@@ -104,62 +176,40 @@ int main()
     {
         printf("%dth: ", i);
         p[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
-        p_copy[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+
         fscanf(stdin, "%[^\n]s", p[i]);
         getchar();
         p[i][strlen(p[i])] = '\0';
-        strcpy(p_copy[i], p[i]);
+        // strcpy(p_copy[i], p[i]);
     }
 
-    for(int i=0;i<n;i++){
+    for (int i = 0; i < n; i++)
+    {
         // printf("{%d}", strlen(p[i]));
         char *token = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
-        token = strtok(p[i], "->");
+        int counter = 0;
+        getToken(p[i], token, &counter);
         // printf("{%d}", strlen(token));
-        token[strlen(token)] = '\0';
-        if (checkPresence(&nonTerminals, token) == false)
+        // token[strlen(token)] = '\0';
+        if (isPresent(&nonTerminals, token) == false)
             addElement(&nonTerminals, token);
     }
-    for(int i=0;i<n;i++){
-        printf("%s\n", p_copy[i]);
-    }
-    for(int i=0;i<n;i++){
-        int count = 0;
+
+    for (int i = 0; i < n; i++)
+    {
         char *token = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
-        token = strtok(p_copy[i], "->");
-        token[strlen(token)] = '\0';
-        while (token != NULL)
+        // token[strlen(token)] = '\0';
+        int counter = 0;
+        getToken(p[i], token, &counter);
+        while (getToken(p[i], token, &counter) != -1)
         {
-            token = strtok(NULL, " ");
-            if (count == 0)
+            if (isPresent(&terminals, token) == false && isPresent(&nonTerminals, token) == false)
             {
-                char *temp = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
-                // printf("%ld: \n", strlen(token));
-                for (int k = 1; k < strlen(token); k++)
-                    temp[k - 1] = token[k];
-                temp[strlen(token) - 1] = '\0';
-                printf("Corrected first: %s\n", temp);
-                if (checkPresence(&terminals, temp) == false && checkPresence(&nonTerminals, temp)==false)
-                {
-                    addElement(&terminals, temp);
-                }
-                count += 1;
+                addElement(&terminals, token);
             }
-            else
-            {
-                if (token != NULL)
-                {
-                    if (checkPresence(&terminals, token) == false && checkPresence(&nonTerminals, token)==false)
-                    {
-                        addElement(&terminals, token);
-                    }
-                }
-            }
-            // printf(":%s:", token);
         }
     }
 
-    free(p_copy);
     printf("The set of non-terminals:\n");
     for (int i = 0; i < nonTerminals.max_size; i++)
     {
@@ -174,6 +224,105 @@ int main()
             printf("%s\n", terminals.values[i]);
     }
 
-    // calculating the FIRST set for all the non-terminals
-    
+    // creating the FIRST set for all the terminals
+    int fSize = terminals.max_size + nonTerminals.max_size;
+    set FIRST[fSize];
+    // FIRST = (set*)malloc((terminals.max_size+nonTerminals.max_size)*sizeof(set));
+
+    for (int i = 0; i < terminals.max_size; i++)
+    {
+        if (strcmp(terminals.values[i], "") != 0)
+        {
+            printf("Terminal under consideration: %s.\n", terminals.values[i]);
+            FIRST[i].max_size = MAX_NUM_TERMINALS;
+            FIRST[i].values = (char **)malloc((FIRST[i].max_size) * sizeof(char *));
+            if (FIRST[i].values == NULL)
+                printf("MALLOC failed.\n");
+            for (int j = 0; j < FIRST[i].max_size; j++)
+            {
+                FIRST[i].values[j] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+                if (FIRST[i].values[j] == NULL)
+                    printf("MALLOC failed.\n");
+                FIRST[i].values[j][0] = '\0';
+            }
+            addElement(&FIRST[i], terminals.values[i]);
+        }
+    }
+
+    printf("FIRST set for terminals:\n");
+    for (int i = 0; i < terminals.max_size; i++)
+    {
+        if (strcmp(terminals.values[i], "") != 0){
+            printf("%s:", terminals.values[i]);
+            printSet(&FIRST[i]);
+        }
+    }
+
+    // creating the FIRST set for all the non-terminals
+    for (int i = terminals.max_size; i < fSize; i++)
+    {
+        int nonTermNum = i - terminals.max_size;
+        if (strcmp(nonTerminals.values[nonTermNum], "") != 0)
+        {
+            printf("Non-terminal under consideration: %s.\n", nonTerminals.values[nonTermNum]);
+            FIRST[i].max_size = MAX_NUM_TERMINALS;
+            FIRST[i].values = (char **)malloc(FIRST[i].max_size * sizeof(char *));
+            if (FIRST[i].values == NULL)
+                printf("MALLOC failed.\n");
+            for (int j = 0; j < FIRST[i].max_size; j++)
+            {
+                FIRST[i].values[j] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+                if (FIRST[i].values[j] == NULL)
+                    printf("MALLOC failed.\n");
+                FIRST[i].values[j][0] = '\0';
+            }
+
+            
+            // iterate over all the non-terminal's productions
+            // and keep adding to its FIRST set accordingly
+            for (int j = 0; j < n; j++)
+            {
+                // strtok the production
+                char *temp = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+                int counter = 0;
+                getToken(p[j], temp, &counter);
+                // check if the head is the same as the current non-terminal at hand
+                if (strcmp(temp, nonTerminals.values[nonTermNum]) == 0)
+                {
+                    printf("Production {%s}'s head matches non-term %s.\n", p[j], nonTerminals.values[nonTermNum]);
+                    // if it's the same, go into the RHS of the production
+                    while (getToken(p[j], temp, &counter) != -1)
+                    {
+
+                        // For every token on the RHS, check if it's in terminals.
+                        if (isPresent(&terminals, temp))
+                        {
+                            printf("Token {%s} is in terminals\n", temp);
+                            // if it is, add it first of that terminal to the first of the current non-terminal
+                            addElement(&FIRST[i], temp);
+                            break;
+                        }
+
+                        else
+                        {
+                            printf("Token {%s} is NOT in terminals\n", temp);
+                            // if it is not, then go to the productions of that non-terminal and find out it's FIRST set.
+                            // do nothing for now.
+                        }
+                    }
+                }
+                // if it's not the same ignore
+                // while writing this, a thought - first find the FIRST of those non-terminals,
+            } // that have a terminal at the beginning of the RHS of their productions.
+        }
+    }
+
+    printf("FIRST set for non-terminals:\n");
+    for (int i = terminals.max_size; i < fSize; i++)
+    {
+        if (strcmp(nonTerminals.values[i - terminals.max_size], "") != 0){
+            printf("%s:", nonTerminals.values[i - terminals.max_size]);
+            printSet(&FIRST[i]);
+        }
+    }
 }
