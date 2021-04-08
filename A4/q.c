@@ -12,6 +12,13 @@ typedef struct set
     int max_size;
 } set;
 
+
+bool isEmpty(set *s){
+    if (strcmp(s->values[0], "") != 0)
+        return false;
+    else return true;
+}
+
 int isPresent(set *s, char *el)
 {
     printf("Checking for %s.\n", el);
@@ -23,6 +30,18 @@ int isPresent(set *s, char *el)
         }
     }
     return false;
+}
+
+int getIndex(set *s, char *el){
+    printf("Getting index of %s.\n", el);
+    for (int i = 0; i < (s->max_size); i++)
+    {
+        if (strcmp(s->values[i], el) == 0)
+        {
+            return i;
+        }
+    }
+    return -1;
 }
 
 void addElement(set *s, char *el)
@@ -257,7 +276,14 @@ int main()
             printSet(&FIRST[i]);
         }
     }
-
+    
+    // check whether any first is left
+    int fDone[nonTerminals.max_size];
+    for(int i=0;i<nonTerminals.max_size;i++){
+        if (strcmp(nonTerminals.values[i], "")==0)
+            fDone[i]=1; // empty non terminals dont concern me
+        else fDone[i]=0;
+    }
     // creating the FIRST set for all the non-terminals
     for (int i = terminals.max_size; i < fSize; i++)
     {
@@ -276,8 +302,6 @@ int main()
                     printf("MALLOC failed.\n");
                 FIRST[i].values[j][0] = '\0';
             }
-
-            
             // iterate over all the non-terminal's productions
             // and keep adding to its FIRST set accordingly
             for (int j = 0; j < n; j++)
@@ -300,20 +324,88 @@ int main()
                             printf("Token {%s} is in terminals\n", temp);
                             // if it is, add it first of that terminal to the first of the current non-terminal
                             addElement(&FIRST[i], temp);
+                            fDone[nonTermNum] = 1;
                             break;
                         }
-
                         else
-                        {
-                            printf("Token {%s} is NOT in terminals\n", temp);
-                            // if it is not, then go to the productions of that non-terminal and find out it's FIRST set.
-                            // do nothing for now.
-                        }
+                        printf("Token {%s} is in Non-terminals. Will handle later.\n", temp);
                     }
                 }
-                // if it's not the same ignore
-                // while writing this, a thought - first find the FIRST of those non-terminals,
-            } // that have a terminal at the beginning of the RHS of their productions.
+            }
+        }
+    }
+    bool allDone = false;
+    int attempt=1;
+    while(allDone == false){
+        printf("Pass num: %d\n", attempt);
+        for (int i = terminals.max_size; i < fSize; i++)
+        {
+            int nonTermNum = i - terminals.max_size;
+            if (strcmp(nonTerminals.values[nonTermNum], "") != 0)
+            {
+                printf("Non-terminal under consideration: %s.\n", nonTerminals.values[nonTermNum]);
+                // iterate over all the non-terminal's productions
+                // and keep adding to its FIRST set accordingly
+                if (isEmpty(&FIRST[i])==false)
+                {
+                    // FIRST set not empty i.e. was done in phase one
+                    printf("FIRST set is already populated.\n");
+                }
+                else {
+                    // FIRST[i] is empty, so fill now.
+                    for (int j = 0; j < n; j++)
+                    {
+                        // strtok the production
+                        char *temp = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
+                        int counter = 0;
+                        getToken(p[j], temp, &counter);
+                        // check if the head is the same as the current non-terminal at hand
+                        if (strcmp(temp, nonTerminals.values[nonTermNum]) == 0)
+                        {
+                            printf("Production {%s}'s head matches non-term %s.\n", p[j], nonTerminals.values[nonTermNum]);
+                            // if it's the same, go into the RHS of the production
+                            while (getToken(p[j], temp, &counter) != -1)
+                            {
+                                // For every token on the RHS, check if it's in terminals.
+                                if (isPresent(&terminals, temp))
+                                {
+                                    break;
+                                }
+                                else
+                                {
+                                    printf("Token {%s} is in Non-terminals\n", temp);
+                                    // if it is not, then find out it's FIRST set.
+                                    int idx = getIndex(&nonTerminals, temp);
+                                    if (isEmpty(&FIRST[terminals.max_size+idx])==false){
+                                        printf("Its first set has some element(s). Adding those.\n");
+                                        // add every element of this non-terminal to the FIRST.
+                                        for(int k=0;k<MAX_NUM_TERMINALS;k++){
+                                            if(strcmp(FIRST[terminals.max_size+idx].values[k], "")!=0){
+                                                addElement(&FIRST[i],FIRST[terminals.max_size+idx].values[k]);
+                                            }
+                                        }
+                                        fDone[nonTermNum] = 1;
+                                    }
+                                    else {
+                                        // if that non-terminal's set is empty. do nothing.
+                                        printf("Its FIRST set is empty. Leaving for now.\n");
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        // if it's not the same ignore
+                        // while writing this, a thought - first find the FIRST of those non-terminals,
+                    } // that have a terminal at the beginning of the RHS of their productions.
+                }
+            }
+        }
+        allDone = true;
+        for(int i=0;i<nonTerminals.max_size;i++){
+            if (fDone[i]==0) {
+                allDone = false;
+                break;
+            }
         }
     }
 
