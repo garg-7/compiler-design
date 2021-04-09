@@ -6,7 +6,7 @@
 #define MAX_UNIT_SIZE 100
 #define MAX_NUM_TERMINALS 50
 
-#define DEBUG 1
+// #define DEBUG
 
 typedef struct set
 {
@@ -599,11 +599,21 @@ int main()
                     int check = getToken(p[j], token, &counter);
                     if (check == -1)
                     {
-                        #ifdef DEBUG
-                            printf("{%s} is at the end of the production, will have to wait.\n", token);
-                        #endif
-                        // add everything from FOLLOW(head) to FOLLOW(token)
-                        dependencyLeft = true;
+                        if (strcmp(token, head)!=0)
+                        {
+                            #ifdef DEBUG
+                                printf("{%s} is at the end of the production, will have to wait.\n", token);
+                            #endif
+                            // add everything from FOLLOW(head) to FOLLOW(token)
+                            dependencyLeft = true;
+                        }
+                        else
+                        {
+                            #ifdef DEBUG
+                                printf("{%s} is at the end of the production, but also at the head, so production is done.\n", token);
+                            #endif
+                            folProd[i][j]--;
+                        }
                     }
                     else // it's not the last symbol
                     {
@@ -718,10 +728,10 @@ int main()
         }
     }
 
-    int numPasses = 0;
-    while (isFolLeft == true && numPasses<5)
+    bool progressMade = true;
+    while (isFolLeft && progressMade)
     {
-        numPasses+=1;
+        progressMade = false;
         // loop over every non-terminal and try to find it in the RHS of
         // some production
         for (int i = 0; i < foSize; i++)
@@ -757,31 +767,56 @@ int main()
                                 int check = getToken(p[j], token, &counter);
                                 if (check == -1)
                                 {
-                                    // add everything from FOLLOW(head) to FOLLOW(token)
-                                    if (folDone[headIdx] == 0)
+                                    if(strcmp(token, head)!=0)
                                     {
-                                        // will come to this production again.
-                                        #ifdef DEBUG
-                                            printf("FOLLOW of head {%s} is not ready. Will visit again.\n", head);
-                                        #endif
+                                        // head is different from the current non-terminal
+                                        // add everything from FOLLOW(head) to FOLLOW(token)
+                                        if (folDone[headIdx] == 0)
+                                        {
+                                            // will come to this production again.
+                                            #ifdef DEBUG
+                                                printf("FOLLOW of head {%s} is not ready. Will visit again.\n", head);
+                                                printf("For now, adding the elements in FOLLOW of head till now:\n");
+                                                printSet(&FOLLOW[headIdx]);
+                                            #endif
+                                            if (isEmpty(&FOLLOW[headIdx])==false)
+                                            {
+                                                for (int k = 0; k < MAX_NUM_TERMINALS; k++)
+                                                {
+                                                    if (strcmp(FOLLOW[headIdx].values[k], "") != 0)
+                                                        addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            #ifdef DEBUG
+                                                printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
+                                                printSet(&FOLLOW[headIdx]);
+                                                printf("Adding these to the FOLLOW of {%s}.\n", nonTerminals.values[i]);
+                                            #endif
+                                            // simply add all the FOLLOW elements
+                                            for (int k = 0; k < MAX_NUM_TERMINALS; k++)
+                                            {
+                                                if (strcmp(FOLLOW[headIdx].values[k], "") != 0)
+                                                    addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
+                                            }
+                                            folProd[i][j]--;
+                                            progressMade = true;
+                                            #ifdef DEBUG
+                                                printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                            #endif
+                                        }
                                     }
                                     else
                                     {
                                         #ifdef DEBUG
-                                            printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
-                                            printSet(&FOLLOW[headIdx]);
+                                            printf("Head is the same as the current nonterminal {%s} under consideration. So this production is done.\n", head);
                                         #endif
-                                        // simply add all the FOLLOW elements
-                                        for (int k = 0; k < MAX_NUM_TERMINALS; k++)
-                                        {
-                                            if (strcmp(FOLLOW[headIdx].values[k], "") != 0)
-                                                addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
-                                        }
                                         folProd[i][j]--;
-                                        #ifdef DEBUG
-                                            printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
-                                        #endif
+                                        progressMade = true;
                                     }
+
                                 }
                                 else // it's not the last symbol
                                 {
@@ -833,6 +868,7 @@ int main()
                                                 printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
                                             #endif
                                             folProd[i][j]--;
+                                            progressMade = true;
                                             counter = 10000;
                                             break;
                                         }
@@ -868,6 +904,7 @@ int main()
                                                             addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
                                                     }
                                                     folProd[i][j]--;
+                                                    progressMade = true;
                                                     #ifdef DEBUG
                                                         printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
                                                     #endif
