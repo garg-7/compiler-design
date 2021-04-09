@@ -1,0 +1,9 @@
+S A C B
+C h
+A d a
+S C b b
+S B a
+B ?
+A B C
+B g
+C ?

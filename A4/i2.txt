@@ -1,0 +1,15 @@
+prog stmt
+expr ++ id
+stmt expr ;
+stmt if expr then block
+expr isZero? term
+block { stmts }
+expr not expr
+expr -- id
+term id
+stmts ?
+term const
+stmt while expr do block
+expr term => id
+block stmt
+stmts stmt stmts

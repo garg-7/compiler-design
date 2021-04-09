@@ -1128,22 +1128,20 @@ int main()
         epIdx = getIndex(&terminals, "?");
     }
 
-    printf("\tThe parsing table: \n");
+    printf("\n\nThe parsing table: \n\n");
     printf("Non-terminal\tTerminal\tContent\n");
 
     for (int i = 0; i < foSize; i++)
     {
-        printf("%s:   ", nonTerminals.values[i]);
+        printf("%s:\n", nonTerminals.values[i]);
         for (int j = 0; j < tSize + 1; j++)
         {
             if (j != epIdx)
             {
-                if (j > 0)
-                    printf("     ");
                 if (j<tSize)
-                    printf("%s\t", terminals.values[j]);
+                    printf("\t\t%s\t\t", terminals.values[j]);
                 else
-                    printf("$\t");
+                    printf("\t\t$\t\t");
                 printSet(&table[i][j]);
             }
         }
