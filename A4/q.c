@@ -6,6 +6,8 @@
 #define MAX_UNIT_SIZE 100
 #define MAX_NUM_TERMINALS 50
 
+#define DEBUG 1
+
 typedef struct set
 {
     char **values;
@@ -231,7 +233,9 @@ int main()
     printf("Enter the productions one by one.\n");
     for (int i = 0; i < n; i++)
     {
-        printf("%dth: ", i);
+        #ifdef DEBUG
+            printf("%dth: ", i);
+        #endif
         p[i] = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
 
         fscanf(stdin, "%[^\n]s", p[i]);
@@ -268,18 +272,10 @@ int main()
     }
 
     printf("The set of non-terminals:\n");
-    for (int i = 0; i < nonTerminals.max_size; i++)
-    {
-        if (nonTerminals.values[i][0] != '\0')
-            printf("%s\n", nonTerminals.values[i]);
-    }
+    printSet(&nonTerminals);
 
     printf("The set of terminals:\n");
-    for (int i = 0; i < terminals.max_size; i++)
-    {
-        if (terminals.values[i][0] != '\0')
-            printf("%s\n", terminals.values[i]);
-    }
+    printSet(&terminals);
 
     // creating the FIRST set for all the terminals
     int fSize = terminals.max_size + nonTerminals.max_size;
@@ -290,7 +286,9 @@ int main()
     {
         if (strcmp(terminals.values[i], "") != 0)
         {
-            printf("Terminal under consideration: %s.\n", terminals.values[i]);
+            #ifdef DEBUG
+                printf("Terminal under consideration: %s.\n", terminals.values[i]);
+            #endif
             FIRST[i].max_size = MAX_NUM_TERMINALS;
             FIRST[i].values = (char **)malloc((FIRST[i].max_size) * sizeof(char *));
             if (FIRST[i].values == NULL)
@@ -327,7 +325,9 @@ int main()
         int nonTermNum = i - terminals.max_size;
         if (strcmp(nonTerminals.values[nonTermNum], "") != 0)
         {
-            printf("Non-terminal whose FIRST is being declared: %s.\n", nonTerminals.values[nonTermNum]);
+            #ifdef DEBUG
+                printf("Non-terminal whose FIRST is being declared: %s.\n", nonTerminals.values[nonTermNum]);
+            #endif
             FIRST[i].max_size = MAX_NUM_TERMINALS;
             FIRST[i].values = (char **)malloc(FIRST[i].max_size * sizeof(char *));
             if (FIRST[i].values == NULL)
@@ -345,7 +345,9 @@ int main()
     int isPLeft = true;
     while (isPLeft)
     {
-        printf("Starting FIRST calculation.\n");
+        #ifdef DEBUG
+            printf("Starting FIRST calculation.\n");
+        #endif
         for (int i = terminals.max_size; i < fSize; i++)
         {
             int nonTermNum = i - terminals.max_size;
@@ -359,30 +361,38 @@ int main()
                     // check if the head is the same as the current non-terminal at hand
                     if (strcmp(temp, nonTerminals.values[nonTermNum]) == 0)
                     {
-                        printf("Production {%s}'s RHS's head matches non-term %s.\n", p[j], nonTerminals.values[nonTermNum]);
+                        #ifdef DEBUG
+                            printf("Production {%s}'s RHS's head matches non-term %s.\n", p[j], nonTerminals.values[nonTermNum]);
+                        #endif
                         // if it's the same, go into the RHS of the production
                         while (getToken(p[j], temp, &counter) != -1)
                         {
                             if (isPresent(&terminals, temp))
                             {
-                                printf("Token {%s} is a terminal symbol.\n", temp);
-                                // if it is, add it first of that terminal to the first of the current non-terminal
-                                printf("added {%s} to FIRST of {%s}.\n", temp, nonTerminals.values[nonTermNum]);
+                                #ifdef DEBUG
+                                    printf("Token {%s} is a terminal symbol.\n", temp);
+                                    // if it is, add it first of that terminal to the first of the current non-terminal
+                                    printf("added {%s} to FIRST of {%s}.\n", temp, nonTerminals.values[nonTermNum]);
+                                #endif
                                 addElement(&FIRST[i], temp);
                                 pDone[j] = 1;
                                 break;
                             }
                             else
                             {
-                                printf("Token {%s} is a non-terminal symbol.\n", temp);
+                                #ifdef DEBUG
+                                    printf("Token {%s} is a non-terminal symbol.\n", temp);
+                                #endif
                                 if (isFirstDone(temp, pDone, p, n) == true)
                                 {
                                     // FIRST is ready, so handle this.
-                                    printf("Its FIRST creation is complete. Elements in its FIRST: \n");
-                                    // if it is not, then find out it's FIRST set.
                                     int idx = getIndex(&nonTerminals, temp);
                                     int epsilonWasFound = false;
-                                    printSet(&FIRST[terminals.max_size + idx]);
+                                    #ifdef DEBUG
+                                        printf("Its FIRST creation is complete. Elements in its FIRST: \n");
+                                        printSet(&FIRST[terminals.max_size + idx]);
+                                    #endif
+                                    // if it is not, then find out it's FIRST set.
                                     for (int k = 0; k < MAX_NUM_TERMINALS; k++)
                                     {
                                         if (strcmp(FIRST[terminals.max_size + idx].values[k], "") != 0)
@@ -395,7 +405,9 @@ int main()
                                                 int check = getToken(p[j], temp, &counter);
                                                 if (check == -1)
                                                 {
-                                                    printf("adding epsilon(?) to FIRST of {%s}.\n", nonTerminals.values[nonTermNum]);
+                                                    #ifdef DEBUG
+                                                        printf("adding epsilon(?) to FIRST of {%s}.\n", nonTerminals.values[nonTermNum]);
+                                                    #endif
                                                     addElement(&FIRST[i], FIRST[terminals.max_size + idx].values[k]);
                                                 }
                                                 else
@@ -406,7 +418,9 @@ int main()
                                             }
                                             else
                                             {
-                                                printf("adding {%s} to FIRST of {%s}.\n", FIRST[terminals.max_size + idx].values[k], nonTerminals.values[nonTermNum]);
+                                                #ifdef DEBUG
+                                                    printf("adding {%s} to FIRST of {%s}.\n", FIRST[terminals.max_size + idx].values[k], nonTerminals.values[nonTermNum]);
+                                                #endif
                                                 addElement(&FIRST[i], FIRST[terminals.max_size + idx].values[k]);
                                             }
                                         }
@@ -417,8 +431,10 @@ int main()
                                         // epsilon wasn't there in the FIRST of the current non-terminal
                                         // this means that we don't need to go further and we can mark
                                         // the current production as done.
-                                        printf("Epsilon wasn't found in the FIRST of {%s}. So production {%s} is done.\n",
+                                        #ifdef DEBUG
+                                            printf("Epsilon wasn't found in the FIRST of {%s}. So production {%s} is done.\n",
                                                temp, p[j]);
+                                        #endif
                                         pDone[j] = 1;
                                         break;
                                     }
@@ -428,8 +444,10 @@ int main()
                                         // printf("current symbol: {%s} check value: %d.\n", temp, check);
                                         if (check == -1)
                                         {
-                                            printf("Epsilon was found in the FIRST of {%s}, but its the last symbol in production {%s}, so the production is done.\n",
+                                            #ifdef DEBUG
+                                                printf("Epsilon was found in the FIRST of {%s}, but its the last symbol in production {%s}, so the production is done.\n",
                                                    temp, p[j]);
+                                            #endif
                                             // this is the last symbol in the production
                                             pDone[j] = 1;
                                             break;
@@ -438,14 +456,18 @@ int main()
                                         {
                                             counter -= 2;                   // checking caused a change to the counter.
                                             getToken(p[j], temp, &counter); // to revert temp
-                                            printf("Epsilon was found in the FIRST of {%s}, but its not the last symbol in production {%s}.\n",
-                                                   temp, p[j]);
+                                            #ifdef DEBUG
+                                                printf("Epsilon was found in the FIRST of {%s}, but its not the last symbol in production {%s}.\n",
+                                                      temp, p[j]);
+                                            #endif
                                         }
                                     }
                                 }
                                 else
                                 {
-                                    printf("FIRST of {%s} is not ready. Moving on.\n", temp);
+                                    #ifdef DEBUG
+                                        printf("FIRST of {%s} is not ready. Moving on.\n", temp);
+                                    #endif
                                     // cannot do anything so move on, as the FIRST is not ready,
                                     // so break out of this production
                                     break;
@@ -488,7 +510,6 @@ int main()
 
     for (int i = 0; i < foSize; i++)
     {
-        printf("%s:", nonTerminals.values[i]);
         folDone[i] = 0;
         for (int j = 0; j < n; j++)
         {
@@ -506,17 +527,28 @@ int main()
                     break;
                 }
             }
-            printf(" %d", folProd[i][j]);
         }
-        printf("\n");
     }
+    #ifdef DEBUG
+        for (int i = 0; i < foSize; i++)
+        {
+            printf("%s:", nonTerminals.values[i]);
+            for (int j = 0; j < n; j++)
+            {
+                printf(" %d", folProd[i][j]);
+            }
+            printf("\n");
+        }
+    #endif
 
     // creating the FOLLOW set for all the non-terminals
     for (int i = 0; i < foSize; i++)
     {
         if (strcmp(nonTerminals.values[i], "") != 0)
         {
-            printf("Non-terminal whose FOLLOW is being declared: %s.\n", nonTerminals.values[i]);
+            #ifdef DEBUG
+                printf("Non-terminal whose FOLLOW is being declared: %s.\n", nonTerminals.values[i]);
+            #endif
             FOLLOW[i].max_size = MAX_NUM_TERMINALS;
             FOLLOW[i].values = (char **)malloc(FOLLOW[i].max_size * sizeof(char *));
             if (FOLLOW[i].values == NULL)
@@ -535,21 +567,27 @@ int main()
     int startIdx = getIndex(&nonTerminals, start);
     addElement(&FOLLOW[startIdx], "$");
 
-    printf("Starting 1st pass.\n");
+    #ifdef DEBUG
+        printf("Starting 1st pass.\n");
+    #endif
     for (int i = 0; i < foSize; i++)
     {
         bool dependencyLeft = false;
         int found = 0;
-        printf("Non-terminal: {%s}.\n", nonTerminals.values[i]);
+        #ifdef DEBUG
+            printf("Non-terminal: {%s}.\n", nonTerminals.values[i]);
+        #endif
         for (int j = 0; j < n; j++)
         {
-            printf("Production: {%s}.\n", p[j]);
             int counter = 0;
             // head of the current production
             char *head = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
             getToken(p[j], head, &counter);
             int headIdx = getIndex(&nonTerminals, head);
-            printf("Head: {%s}.\n", head);
+            #ifdef DEBUG
+                printf("Production: {%s}.\n", p[j]);
+                printf("Head: {%s}.\n", head);
+            #endif
             char *token = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
             while (getToken(p[j], token, &counter) != -1)
             {
@@ -561,7 +599,9 @@ int main()
                     int check = getToken(p[j], token, &counter);
                     if (check == -1)
                     {
-                        printf("{%s} is at the end of the production, will have to wait.\n", token);
+                        #ifdef DEBUG
+                            printf("{%s} is at the end of the production, will have to wait.\n", token);
+                        #endif
                         // add everything from FOLLOW(head) to FOLLOW(token)
                         dependencyLeft = true;
                     }
@@ -576,16 +616,22 @@ int main()
                             if (isPresent(&terminals, token))
                             {
                                 idx = getIndex(&terminals, token);
-                                printf("Terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                #ifdef DEBUG
+                                    printf("Terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                #endif
                             }
                             else
                             {
                                 idx = terminals.max_size + getIndex(&nonTerminals, token);
-                                printf("Non-terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                #ifdef DEBUG
+                                    printf("Non-terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                #endif
                             }
                             // next is a terminal
                             bool isEpsilonPresent = false;
-                            printf("Adding FIRST of it to the FOLLOW.\n");
+                            #ifdef DEBUG
+                                printf("Adding FIRST of it to the FOLLOW.\n");
+                            #endif
                             for (int k = 0; k < MAX_NUM_TERMINALS; k++)
                             {
                                 if (strcmp(FIRST[idx].values[k], "") != 0)
@@ -596,14 +642,18 @@ int main()
                                     }
                                     else
                                     {
-                                        printf("Adding {%s} to the FOLLOW of {%s}.\n", FIRST[idx].values[k], nonTerminals.values[i]);
+                                        #ifdef DEBUG
+                                            printf("Adding {%s} to the FOLLOW of {%s}.\n", FIRST[idx].values[k], nonTerminals.values[i]);
+                                        #endif
                                         addElement(&FOLLOW[i], FIRST[idx].values[k]);
                                     }
                                 }
                             }
                             if (isEpsilonPresent == false)
                             {
-                                printf("{%s} does not have epsilon in its FIRST set.\n", token);
+                                #ifdef DEBUG
+                                    printf("{%s} does not have epsilon in its FIRST set.\n", token);
+                                #endif
                                 folProd[i][j]--;
                                 counter = 10000;
                                 break;
@@ -616,14 +666,18 @@ int main()
                                     // it is the last token and there was an epsilon, so
                                     // FOLLOW dependency on head.
                                     dependencyLeft = true;
-                                    printf("{%s} has epsilon in its FIRST set and is at the end, so FOLLOW dependency on head {%s}.\n", token, head);
+                                    #ifdef DEBUG
+                                        printf("{%s} has epsilon in its FIRST set and is at the end, so FOLLOW dependency on head {%s}.\n", token, head);
+                                    #endif
                                 }
                                 else
                                 {
                                     // revert the changes made due to the check
                                     counter -= 2;                    // checking caused a change to the counter.
                                     getToken(p[j], token, &counter); // to revert temp
-                                    printf("{%s} has epsilon in its FIRST set but is NOT at the end.\n", token);
+                                    #ifdef DEBUG
+                                        printf("{%s} has epsilon in its FIRST set but is NOT at the end.\n", token);
+                                    #endif
                                 }
                             }
                         }
@@ -640,17 +694,19 @@ int main()
         if (dependencyLeft == false)
             folDone[i] = true;
     }
-    printf("1st pass for FOLLOW sets done.\n");
-
-    for (int i = 0; i < foSize; i++)
-    {
-        printf("%s:", nonTerminals.values[i]);
-        for (int j = 0; j < n; j++)
+    #ifdef DEBUG
+        printf("1st pass for FOLLOW sets done.\n");
+        for (int i = 0; i < foSize; i++)
         {
-            printf(" %d", folProd[i][j]);
+            printf("%s:", nonTerminals.values[i]);
+            for (int j = 0; j < n; j++)
+            {
+                printf(" %d", folProd[i][j]);
+            }
+            printf("\n");
         }
-        printf("\n");
-    }
+    #endif
+
     bool isFolLeft = false;
     // exit(1);
     for (int i = 0; i < foSize; i++)
@@ -672,20 +728,26 @@ int main()
         {
             if (folDone[i] == false)
             {
-                printf("Non-terminal: {%s}.\n", nonTerminals.values[i]);
+                #ifdef DEBUG
+                    printf("Non-terminal: {%s}.\n", nonTerminals.values[i]);
+                #endif
                 // FOLLOW set for ith non terminal is not done.
                 for (int j = 0; j < n; j++)
                 {
                     if (folProd[i][j] == 1)
                     {
-                        printf("Considering production: %s.\n", p[j]);
                         // jth production has to be consulted for ith non terminal's FOLLOW creation.
                         int counter = 0;
                         // head of the current production
                         char *head = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
                         getToken(p[j], head, &counter);
                         int headIdx = getIndex(&nonTerminals, head);
-                        printf("Head: {%s}.\n", head);
+                        
+                        #ifdef DEBUG
+                            printf("Considering production: %s.\n", p[j]);
+                            printf("Head: {%s}.\n", head);
+                        #endif
+
                         char *token = (char *)malloc(MAX_UNIT_SIZE * sizeof(char));
                         while (getToken(p[j], token, &counter) != -1)
                         {
@@ -699,12 +761,16 @@ int main()
                                     if (folDone[headIdx] == 0)
                                     {
                                         // will come to this production again.
-                                        printf("FOLLOW of head {%s} is not ready. Will visit again.\n", head);
+                                        #ifdef DEBUG
+                                            printf("FOLLOW of head {%s} is not ready. Will visit again.\n", head);
+                                        #endif
                                     }
                                     else
                                     {
-                                        printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
-                                        printSet(&FOLLOW[headIdx]);
+                                        #ifdef DEBUG
+                                            printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
+                                            printSet(&FOLLOW[headIdx]);
+                                        #endif
                                         // simply add all the FOLLOW elements
                                         for (int k = 0; k < MAX_NUM_TERMINALS; k++)
                                         {
@@ -712,7 +778,9 @@ int main()
                                                 addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
                                         }
                                         folProd[i][j]--;
-                                        printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                        #ifdef DEBUG
+                                            printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                        #endif
                                     }
                                 }
                                 else // it's not the last symbol
@@ -726,15 +794,21 @@ int main()
                                         if (isPresent(&terminals, token))
                                         {
                                             idx = getIndex(&terminals, token);
-                                            printf("Terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                            #ifdef DEBUG
+                                                printf("Terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                            #endif
                                         }
                                         else
                                         {
                                             idx = terminals.max_size + getIndex(&nonTerminals, token);
-                                            printf("Non-terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                            #ifdef DEBUG
+                                                printf("Non-terminal {%s}'s index (in FIRST): %d.\n", token, idx);
+                                            #endif
                                         }
                                         bool isEpsilonPresent = false;
-                                        printf("Adding FIRST of it to the FOLLOW.\n");
+                                        #ifdef DEBUG
+                                            printf("Adding FIRST of it to the FOLLOW.\n");
+                                        #endif
                                         for (int k = 0; k < MAX_NUM_TERMINALS; k++)
                                         {
                                             if (strcmp(FIRST[idx].values[k], "") != 0)
@@ -745,16 +819,20 @@ int main()
                                                 }
                                                 else
                                                 {
-                                                    printf("Adding {%s} to the FOLLOW of {%s}.\n", FIRST[idx].values[k], nonTerminals.values[i]);
+                                                    #ifdef DEBUG
+                                                        printf("Adding {%s} to the FOLLOW of {%s}.\n", FIRST[idx].values[k], nonTerminals.values[i]);
+                                                    #endif
                                                     addElement(&FOLLOW[i], FIRST[idx].values[k]);
                                                 }
                                             }
                                         }
                                         if (isEpsilonPresent == false)
                                         {
-                                            printf("{%s} does not have epsilon in its FIRST set.\n", token);
+                                            #ifdef DEBUG
+                                                printf("{%s} does not have epsilon in its FIRST set.\n", token);
+                                                printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                            #endif
                                             folProd[i][j]--;
-                                            printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
                                             counter = 10000;
                                             break;
                                         }
@@ -765,18 +843,24 @@ int main()
                                             {
                                                 // it is the last token and there was an epsilon, so
                                                 // FOLLOW dependency on head.
-                                                printf("{%s} has epsilon in its FIRST set and is at the end, so FOLLOW dependency on head {%s}.\n", token, head);
+                                                #ifdef DEBUG
+                                                    printf("{%s} has epsilon in its FIRST set and is at the end, so FOLLOW dependency on head {%s}.\n", token, head);
+                                                #endif
                                                 // add everything from FOLLOW(head) to FOLLOW(token)
                                                 if (folDone[headIdx] == 0)
                                                 {
                                                     // will come to this production again.
+                                                    #ifdef DEBUG
                                                     printf("FOLLOW of head {%s} is not ready. Will visit again.\n", head);
+                                                    #endif
                                                 }
                                                 else
                                                 {
-                                                    printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
-                                                    printSet(&FOLLOW[headIdx]);
-                                                    printf("Adding these to the FOLLOW of {%s}.\n", nonTerminals.values[i]);
+                                                    #ifdef DEBUG
+                                                        printf("FOLLOW of head {%s} is complete and has the following elements: \n", head);
+                                                        printSet(&FOLLOW[headIdx]);
+                                                        printf("Adding these to the FOLLOW of {%s}.\n", nonTerminals.values[i]);
+                                                    #endif
                                                     // simply add all the FOLLOW elements
                                                     for (int k = 0; k < MAX_NUM_TERMINALS; k++)
                                                     {
@@ -784,7 +868,9 @@ int main()
                                                             addElement(&FOLLOW[i], FOLLOW[headIdx].values[k]);
                                                     }
                                                     folProd[i][j]--;
-                                                    printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                                    #ifdef DEBUG
+                                                        printf("Production %d is done for nonterminal {%s}.\n", j, nonTerminals.values[i]);
+                                                    #endif
                                                 }
                                             }
                                             else
@@ -792,7 +878,9 @@ int main()
                                                 // revert the changes made due to the check
                                                 counter -= 2;                    // checking caused a change to the counter.
                                                 getToken(p[j], token, &counter); // to revert temp
-                                                printf("{%s} has epsilon in its FIRST set but is NOT at the end.\n", token);
+                                                #ifdef DEBUG
+                                                    printf("{%s} has epsilon in its FIRST set but is NOT at the end.\n", token);
+                                                #endif
                                             }
                                         }
                                     }
@@ -801,10 +889,6 @@ int main()
                         }
                     }
                 }
-            }
-            else
-            {
-                printf("FOLLOW set of {%s} is done.\n", nonTerminals.values[i]);
             }
             for (int j = 0; j < n; j++)
             {
@@ -818,14 +902,17 @@ int main()
                 }
                 folDone[i] = true;
             }
+            #ifdef DEBUG
+                if(folDone[i]==true)
+                {
+                    printf("FOLLOW set of {%s} is done.\n", nonTerminals.values[i]);
+                }
+                else
+                {
+                    printf("FOLLOW set of {%s} is unfinished.\n", nonTerminals.values[i]);
+                }
+            #endif
         }
-
-
-        // // see which FOLLOW sets are done
-        // for (int i = 0; i < foSize; i++)
-        // {
-            
-        // }
 
         isFolLeft = false;
         for (int i = 0; i < foSize; i++)
