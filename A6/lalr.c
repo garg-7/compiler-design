@@ -134,6 +134,52 @@ void addSet(set *dst, set src)
     }
 }
 
+bool areIdentical(set *s1, set *s2){
+    if (getSize(s1)!=getSize(s2)) {
+        return false;
+    }
+    else{
+        int matches = 0;
+        for(int i=0;i<s1->max_size;i++)
+        {
+            if (s1->values[i][0]==0)
+                break;
+            for(int j=0;j<s2->max_size;j++){
+                if (strcmp(s1->values[i], s2->values[j])==0){
+                    matches += 1;
+                }
+            }
+        }
+        if (matches == getSize(s1))
+        return true;
+        else return false;
+    }
+}
+
+bool contains(setsq *s1, set *s2)
+{
+    for (int i=0;i<s1->max_size;i++)
+    {
+        if (s1->sets[i]->values[0]==0)
+        break;
+        if (areIdentical(s1->sets[i], s2)==true){
+            return true;
+        }
+    }
+    return false;
+}
+
+int getSqSize(setsq *s1){
+    int count = 0;
+    for (int i=0;i<s1->max_size;i++)
+    {
+        if (s1->sets[i]->values[0]==0)
+        break;
+        count += 1;
+    }
+    return count;
+}
+
 // !! IMPORTANT: source must be NULL-terminated. !!
 int getToken(char *source, char *tok, int *loc)
 {
@@ -480,12 +526,12 @@ set closure(set src, set *p, set *nonTerminals, set *terminals){
         if(getSize(&dst)==initialSize)
             break;
     }
-    printf("Set being returned by closure: ");
-    printSet(&dst);
+    // printf("Set being returned by closure: ");
+    // printSet(&dst);
     return dst;
 }
 
-set GOTO(set src, set *p, set *nonTerminals, set *terminals){
+set GOTO(set src, char *X, set *p, set *nonTerminals, set *terminals){
     
     set dst;
     dst.max_size = MAX_NUM_TERMINALS;
@@ -515,32 +561,34 @@ set GOTO(set src, set *p, set *nonTerminals, set *terminals){
         int retVal = getStuffAfterDot(tmp, rem, src.values[i]);
         if (retVal==1)
         {
-            // there is something left to consume
-            char *tmp2 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
-            int check = getBodyTillDot(tmp2, src.values[i]);
-            if (check==1){
-                // proper body present in tmp2
-                char *newItem = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
-                newItem[0] = 0;
-                char *tmp3 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
-                int c = 0;
-                getToken(src.values[i], tmp3, &c);
-                strcat(newItem, tmp3); // add the head of the production
-                strcat(newItem, " ");
-                strcat(newItem, tmp2); // add the body till the dot
-                if (strlen(tmp2)>0)
+            if (strcmp(tmp, X)==0){
+                // there is something left to consume
+                char *tmp2 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
+                int check = getBodyTillDot(tmp2, src.values[i]);
+                if (check==1){
+                    // proper body present in tmp2
+                    char *newItem = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
+                    newItem[0] = 0;
+                    char *tmp3 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
+                    int c = 0;
+                    getToken(src.values[i], tmp3, &c);
+                    strcat(newItem, tmp3); // add the head of the production
                     strcat(newItem, " ");
-                strcat(newItem, tmp);   // consume the next token
-                strcat(newItem, " .");  // add the dot
-                if (strlen(rem)>0){
-                    strcat(newItem, " ");
-                    strcat(newItem, rem);   // add the remaining part of the after dot stuff
+                    strcat(newItem, tmp2); // add the body till the dot
+                    if (strlen(tmp2)>0)
+                        strcat(newItem, " ");
+                    strcat(newItem, tmp);   // consume the next token
+                    strcat(newItem, " .");  // add the dot
+                    if (strlen(rem)>0){
+                        strcat(newItem, " ");
+                        strcat(newItem, rem);   // add the remaining part of the after dot stuff
+                    }
+                    strcat(newItem, " - ");
+                    char *lookahead = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
+                    getLookahead(lookahead, src.values[i]);
+                    strcat(newItem, lookahead);
+                    addElement(&dst, newItem);
                 }
-                strcat(newItem, " - ");
-                char *lookahead = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
-                getLookahead(lookahead, src.values[i]);
-                strcat(newItem, lookahead);
-                addElement(&dst, newItem);
             }
         }
     }
@@ -664,6 +712,7 @@ int main()
         sq.sets[i] = (set*)malloc(sizeof(set));
         init(sq.sets[i], 50);
     }
+    int curr = 0;
 
     set initialSet;
     initialSet.max_size = MAX_NUM_TERMINALS;
@@ -698,6 +747,30 @@ int main()
     // printSet(&initialSet);
 
     *sq.sets[0] = closure(initialSet, p, nonTerminals, terminals);
-
-    printSet(sq.sets[0]);
+    curr += 1;
+    // get the set of item sets
+    while(true){
+        int initialCount = getSqSize(&sq);
+        for(int i = 0;i<initialCount;i++)
+        {
+            for(int j=0;j<getSize(terminals);j++)
+            {
+                set GOTOReceived = GOTO(*sq.sets[i], terminals->values[j], p, nonTerminals, terminals);
+                if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
+                {
+                    *sq.sets[curr] = GOTOReceived;
+                }
+            }
+            for(int j=0;j<getSize(nonTerminals);j++)
+            {
+                set GOTOReceived = GOTO(*sq.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
+                if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
+                {
+                    *sq.sets[curr] = GOTOReceived;
+                }
+            }
+        }
+        if (getSqSize==initialCount)
+        break;
+    }
 }
