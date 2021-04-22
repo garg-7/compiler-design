@@ -19,14 +19,15 @@ typedef struct setsq
 {
     set **sets;
     int max_size;
+    int curr;
 } setsq;
 
 bool isEmpty(set *s)
 {
-    if (strcmp(s->values[0], "") != 0)
-        return false;
-    else
+    if (strlen(s->values[0]) == 0)
         return true;
+    else
+        return false;
 }
 
 int isPresent(set *s, char *el)
@@ -158,9 +159,9 @@ bool areIdentical(set *s1, set *s2){
 
 bool contains(setsq *s1, set *s2)
 {
-    for (int i=0;i<s1->max_size;i++)
+    for (int i=0;i<s1->curr;i++)
     {
-        if (s1->sets[i]->values[0]==0)
+        if (isEmpty(s1->sets[i])==true)
         break;
         if (areIdentical(s1->sets[i], s2)==true){
             return true;
@@ -169,16 +170,18 @@ bool contains(setsq *s1, set *s2)
     return false;
 }
 
-int getSqSize(setsq *s1){
-    int count = 0;
-    for (int i=0;i<s1->max_size;i++)
-    {
-        if (s1->sets[i]->values[0]==0)
-        break;
-        count += 1;
-    }
-    return count;
-}
+// int getSqSize(setsq *s1){
+//     int count = 0;
+//     printf("-----GETTING SIZE OF SET OF SETS-----\n");
+//     for (int i=0;i<s1->max_size;i++)
+//     {
+//         printSet(s1->sets[i]);
+//         if (isEmpty(s1->sets[i])==true)
+//             break;
+//         count += 1;
+//     }
+//     return count;
+// }
 
 // !! IMPORTANT: source must be NULL-terminated. !!
 int getToken(char *source, char *tok, int *loc)
@@ -303,6 +306,7 @@ int getStuffAfterDot(char *dst, char *rem, char *src){
 int getBodyTillDot(char *dst, char *src) {
     char tmp[MAX_UNIT_SIZE];
     int counter = 0;
+    getToken(src, tmp, &counter);
     while(getToken(src, tmp, &counter)!=-1) {
         if (strcmp(tmp, ".")==0) {
             if (strlen(dst) > 0) {
@@ -321,7 +325,7 @@ int getBodyTillDot(char *dst, char *src) {
 
 // ensure that all the epsilon productions are at the end
 set getFirstOfToken(char *tok, set* p, set *nonTerminals, set *terminals){
-    printf("FIRST asked for token [%s]\n", tok);
+    // printf("FIRST asked for token [%s]\n", tok);
     set dst;
     dst.max_size = MAX_NUM_TERMINALS;
     for(int i=0;i<dst.max_size;i++){
@@ -343,7 +347,7 @@ set getFirstOfToken(char *tok, set* p, set *nonTerminals, set *terminals){
         }
     }
     if (isPresent(terminals, tok)==true){
-        printf("adding [%s] to the first set of [%s].\n", tok, tok);
+        // printf("adding [%s] to the first set of [%s].\n", tok, tok);
         addElement(&dst, tok);
     }
     else {
@@ -354,7 +358,7 @@ set getFirstOfToken(char *tok, set* p, set *nonTerminals, set *terminals){
             char *head = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
             getHead(head, p->values[i]);
             if (strcmp(head, tok)==0){
-                printf("  it's production being considered: [%s]\n", p->values[i]);
+                // printf("  it's production being considered: [%s]\n", p->values[i]);
                 char *part = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
                 int counter = 0;
                 getToken(p->values[i], part, &counter);
@@ -395,7 +399,7 @@ set getFirstOfToken(char *tok, set* p, set *nonTerminals, set *terminals){
 set getFirstOfString(char *src, set *p, set *nonTerminals, set *terminals){
     // get the First set for the source string src.
     // put in the first in the set passed.
-    printf("FIRST asked for [%s]\n", src);
+    // printf("FIRST asked for [%s]\n", src);
     set dst;
     dst.max_size = MAX_NUM_TERMINALS;
     for(int i=0;i<dst.max_size;i++){
@@ -421,7 +425,7 @@ set getFirstOfString(char *src, set *p, set *nonTerminals, set *terminals){
     int counter = 0;
     while(getToken(src, tok, &counter)!=-1)
     {
-        printf("  FIRST being calculated for: [%s]\n", tok);
+        // printf("  FIRST being calculated for: [%s]\n", tok);
         addSet(&dst, getFirstOfToken(tok, p, nonTerminals, terminals));
         
         int retVal = getToken(src, tok, &counter);
@@ -562,6 +566,7 @@ set GOTO(set src, char *X, set *p, set *nonTerminals, set *terminals){
         if (retVal==1)
         {
             if (strcmp(tmp, X)==0){
+                printf("Can consume [%s], in case of [%s]\n", X, src.values[i]);
                 // there is something left to consume
                 char *tmp2 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
                 int check = getBodyTillDot(tmp2, src.values[i]);
@@ -583,15 +588,18 @@ set GOTO(set src, char *X, set *p, set *nonTerminals, set *terminals){
                         strcat(newItem, " ");
                         strcat(newItem, rem);   // add the remaining part of the after dot stuff
                     }
-                    strcat(newItem, " - ");
+                    strcat(newItem, " _ ");
                     char *lookahead = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
                     getLookahead(lookahead, src.values[i]);
                     strcat(newItem, lookahead);
+                    printf("        Item being added to GOTO: [%s]\n", newItem);
                     addElement(&dst, newItem);
                 }
             }
         }
     }
+    printf("Returning closure of: \n");
+    printSet(&dst);
     return closure(dst, p, nonTerminals, terminals);
 }
 
@@ -612,7 +620,12 @@ void init(set *s, int n){
             fprintf(stderr, "Failed to allocate memory for set's values[i].\n");
             exit(3);
         }
-        s->values[i][0] = '\0';
+        s->values[i][0] = 0;
+        if (strlen(s->values[i])!=0)
+        {
+            printf("Something's wrong\n");
+            exit(1);
+        }
     }
     return;
 }
@@ -707,12 +720,20 @@ int main()
     // create a set of sets
     setsq sq;
     sq.max_size = MAX_NUM_TERMINALS;
-    sq.sets = (set**)malloc(sizeof(set*));
-    for(int i=0;i<n;i++){
+    sq.sets = (set**)malloc(MAX_NUM_TERMINALS*sizeof(set*));
+    for(int i=0;i<sq.max_size;i++){
         sq.sets[i] = (set*)malloc(sizeof(set));
+        if(sq.sets[i]==NULL){
+            fprintf(stderr, "Failed to allocate memory for set.\n");
+            exit(3);
+        }
         init(sq.sets[i], 50);
+        if (strlen(sq.sets[i]->values[0])!=0){
+             printf("Something's wrong\n");
+            exit(1);
+        }
     }
-    int curr = 0;
+    sq.curr = 0;
 
     set initialSet;
     initialSet.max_size = MAX_NUM_TERMINALS;
@@ -746,31 +767,67 @@ int main()
     
     // printSet(&initialSet);
 
-    *sq.sets[0] = closure(initialSet, p, nonTerminals, terminals);
-    curr += 1;
+    *sq.sets[sq.curr] = closure(initialSet, p, nonTerminals, terminals);
+    // printSet(sq.sets[0]);
+    // exit(9);
+    sq.curr += 1;
     // get the set of item sets
+    int prevCount = 0;
     while(true){
-        int initialCount = getSqSize(&sq);
-        for(int i = 0;i<initialCount;i++)
+        int initialCount = sq.curr;
+        for(int i = prevCount;i<initialCount;i++)
         {
+            printf("The item set being considered: \n");
+            printSet(sq.sets[i]);
             for(int j=0;j<getSize(terminals);j++)
             {
+                printf("  The terminal being considered: [%s]\n", terminals->values[j]);
                 set GOTOReceived = GOTO(*sq.sets[i], terminals->values[j], p, nonTerminals, terminals);
+                printf("    The GOTO set received: \n");
+                printSet(&GOTOReceived);
                 if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
                 {
-                    *sq.sets[curr] = GOTOReceived;
+                    printf("    This GOTO set wasn't empty and wasn't previously in the set of item sets, so adding at number %d...\n", sq.curr);
+                    if(sq.sets[sq.curr]==NULL){
+                        printf("sorry set is NULL");
+                        exit(6);
+                    }
+                    addSet(sq.sets[sq.curr], GOTOReceived);
+                    sq.curr += 1;
                 }
             }
             for(int j=0;j<getSize(nonTerminals);j++)
             {
+                printf("  The non-terminal being considered: [%s]\n", nonTerminals->values[j]);
                 set GOTOReceived = GOTO(*sq.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
+                printf("    The GOTO set received: \n");
+                printSet(&GOTOReceived);
                 if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
                 {
-                    *sq.sets[curr] = GOTOReceived;
+                    printf("    This GOTO set wasn't empty and wasn't previously in the set of item sets, so adding at number %d...\n", sq.curr);
+                    if(sq.sets[sq.curr]==NULL){
+                        printf("sorry set is NULL");
+                        exit(6);
+                    }
+                    addSet(sq.sets[sq.curr], GOTOReceived);
+                    sq.curr += 1;
                 }
             }
         }
-        if (getSqSize==initialCount)
-        break;
+        printf("At the end of a whole iteration, the sets we have are: \n");
+        for(int i=0;i<sq.curr;i++)
+        {
+            printSet(sq.sets[i]);
+        }
+        if (sq.curr==initialCount)
+            break;
+        prevCount = initialCount;
+    }
+
+    // print out the LR(1) items
+    printf("LR(1) item sets created are: \n");
+    for(int i=0;i<sq.curr;i++)
+    {
+        printSet(sq.sets[i]);
     }
 }
