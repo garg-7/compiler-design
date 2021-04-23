@@ -6,9 +6,9 @@
 
 #define MAX_UNIT_SIZE 100
 #define MAX_NUM_TERMINALS 50
-
+#define MAX_STACK_SIZE 100
 // #define DEBUG_CLOSURE
-#define DEBUG_GOTO
+// #define DEBUG_GOTO
 // #define DEBUG
 
 typedef struct set
@@ -24,6 +24,32 @@ typedef struct setsq
     int curr;
 } setsq;
 
+typedef struct stack
+{
+    int nums[MAX_STACK_SIZE];
+    int curr;
+} stack;
+
+int pop(stack *s)
+{
+    if (s->curr>-1)
+    {
+        int item = s->nums[s->curr];
+        s->curr --;
+        return item;
+    }
+    else {
+        printf("Popping from empty stack.\n");
+        exit(0);
+    }
+}
+
+void push(int n, stack *s)
+{
+    s->curr += 1;
+    s->nums[s->curr] = n;
+    return;
+}
 bool isEmpty(set *s)
 {
     if (strlen(s->values[0]) == 0)
@@ -724,6 +750,15 @@ bool isCoreSame(set *s1, set *s2){
         return false;
 }
 
+int numSpaces(char *s){
+    int count = 0;
+    for(int i=0;i<strlen(s);i++)
+    {
+        if (s[i]==' ')
+        count += 1;
+    }
+    return count;
+}
 int main()
 {
     int n = 0;
@@ -1165,8 +1200,85 @@ int main()
 
     
 
+    // parse using the table
+    char inp[MAX_UNIT_SIZE];
+    printf("Enter the input string: ");
+    fscanf(stdin, "%[^\n]s", inp);
+    getchar();
 
+    strcat(inp, " $");
 
-
-
+    stack *s = (stack*)malloc(sizeof(stack));
+    s->curr = -1;
+    push(0, s);
+    int counter = 0; // position on the input string
+    char a[MAX_UNIT_SIZE];
+    getToken(inp, a, &counter);
+    int top = -1;
+    while(1){
+        top = pop(s);
+        push(top, s);
+        char tmp[MAX_UNIT_SIZE];
+        strcpy(tmp, action[top][getIndex(terminals, a)]);
+        #ifdef DEBUG_PARSING
+        printf("In action[%d, %d] we have: ", top, getIndex(terminals, a));
+        printf("%s\n", tmp);
+        #endif  
+        if (strcmp(tmp, "accept")==0){
+            printf("The string has been accepted.\n");
+            exit(0);
+        }
+        else if(tmp[0]=='r')
+        {
+            // some reduction
+            char num[50];
+            num[0] = 0;
+            for(int i=2;i<strlen(tmp);i++)
+            {
+                strcat(num, &tmp[i]);
+            }
+            num[2] = 0;
+            int no = atoi(num)-1; // machine handling
+            // get the head of this production
+            char head[MAX_UNIT_SIZE];
+            getHead(head, p->values[no]);
+            char body[MAX_UNIT_SIZE];
+            getBody(body, p->values[no]);
+            for(int k=0;k<numSpaces(body)+1;k++){
+                int smthg = pop(s);
+                #ifdef DEBUG_PARSING
+                printf("Popped: %d\n", smthg);
+                #endif
+            }
+            int topnum = pop(s);
+            push(topnum, s);
+            push(gotoTable[topnum][getIndex(nonTerminals, head)], s);
+            #ifdef DEBUG_PARSING
+            printf("Pushed: %d\n", gotoTable[topnum][getIndex(nonTerminals, head)]);
+            #endif
+            printf("[%s]\n", p->values[no]);
+        }
+        else if (tmp[0]=='s')
+        {
+            // some shifting
+            char num[50];
+            num[0] = 0;
+            for(int i=2;i<strlen(tmp);i++)
+            {
+                strcat(num, &tmp[i]);
+            }
+            num[2] = 0;
+            int no = atoi(num); 
+            #ifdef DEBUG_PARSING
+            printf("Shifting to %d\n", no);
+            #endif
+            push(no, s);
+            if (strcmp(a, "$")!=0)
+            getToken(inp, a, &counter);
+        }
+        else {
+            printf("String cannot be parsed by this grammar.\n");
+            exit(4);
+        }
+    }
 }
