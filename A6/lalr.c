@@ -7,9 +7,12 @@
 #define MAX_UNIT_SIZE 100
 #define MAX_NUM_TERMINALS 50
 #define MAX_STACK_SIZE 100
+
 // #define DEBUG_CLOSURE
 // #define DEBUG_GOTO
-// #define DEBUG
+// #define DEBUG_PARSING
+// #define DEBUG_LR1
+// #define DEBUG_ACTION
 
 typedef struct set
 {
@@ -197,19 +200,6 @@ bool contains(setsq *s1, set *s2)
     }
     return false;
 }
-
-// int getSqSize(setsq *s1){
-//     int count = 0;
-//     printf("-----GETTING SIZE OF SET OF SETS-----\n");
-//     for (int i=0;i<s1->max_size;i++)
-//     {
-//         printSet(s1->sets[i]);
-//         if (isEmpty(s1->sets[i])==true)
-//             break;
-//         count += 1;
-//     }
-//     return count;
-// }
 
 // !! IMPORTANT: source must be NULL-terminated. !!
 int getToken(char *source, char *tok, int *loc)
@@ -542,7 +532,9 @@ set closure(set src, set *p, set *nonTerminals, set *terminals){
                     #endif
                     // get the first set of something
                     set first = getFirstOfString(rem, p, nonTerminals, terminals);
+                    #ifdef DEBUG_CLOSURE
                     printSet(&first);
+                    #endif
                     for (int j=0;j<n;j++){
                         char * head = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
                         getHead(head, p->values[j]);
@@ -903,17 +895,26 @@ int main()
         int initialCount = sq.curr;
         for(int i = prevCount;i<initialCount;i++)
         {
+            #ifdef DEBUG_LR1
             printf("The item set being considered: \n");
             printSet(sq.sets[i]);
+            #endif
+
             for(int j=0;j<getSize(nonTerminals);j++)
             {
+                #ifdef DEBUG_LR1
                 printf("  The non-terminal being considered: [%s]\n", nonTerminals->values[j]);
+                #endif
                 set GOTOReceived = GOTO(*sq.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
+                #ifdef DEBUG_LR1
                 printf("    The GOTO set received: \n");
                 printSet(&GOTOReceived);
+                #endif
                 if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
                 {
+                    #ifdef DEBUG_LR1
                     printf("    This GOTO set wasn't empty and wasn't previously in the set of item sets, so adding at number %d...\n", sq.curr);
+                    #endif
                     if(sq.sets[sq.curr]==NULL){
                         printf("sorry set is NULL");
                         exit(6);
@@ -924,13 +925,19 @@ int main()
             }
             for(int j=0;j<getSize(terminals);j++)
             {
+                #ifdef DEBUG_LR1
                 printf("  The terminal being considered: [%s]\n", terminals->values[j]);
+                #endif
                 set GOTOReceived = GOTO(*sq.sets[i], terminals->values[j], p, nonTerminals, terminals);
+                #ifdef DEBUG_LR1
                 printf("    The GOTO set received: \n");
                 printSet(&GOTOReceived);
+                #endif
                 if (isEmpty(&GOTOReceived)==false && contains(&sq, &GOTOReceived)==false)
                 {
+                    #ifdef DEBUG_LR1
                     printf("    This GOTO set wasn't empty and wasn't previously in the set of item sets, so adding at number %d...\n", sq.curr);
+                    #endif
                     if(sq.sets[sq.curr]==NULL){
                         printf("sorry set is NULL");
                         exit(6);
@@ -940,22 +947,26 @@ int main()
                 }
             }
         }
+        #ifdef DEBUG_LR1
         printf("At the end of a whole iteration, the sets we have are: \n");
         for(int i=0;i<sq.curr;i++)
         {
             printSet(sq.sets[i]);
         }
+        #endif
         if (sq.curr==initialCount)
             break;
         prevCount = initialCount;
     }
 
     // print out the LR(1) items
+    #ifdef DEBUG_LR1
     printf("LR(1) item sets created are: \n");
     for(int i=0;i<sq.curr;i++)
     {
         printSet(sq.sets[i]);
     }
+    #endif
     // create an isDone array to maintain whether 
     // a set has been handled or not
 
@@ -991,7 +1002,7 @@ int main()
         init(final.sets[i], 50);
     }
     final.curr = 0;
-
+    printf("\nNumber of item sets before merging: [%d]\n\n", sq.curr);
     for (int i=0;i<sq.curr;i++)
     {
         if (isDone[i]==false){
@@ -1015,11 +1026,14 @@ int main()
         }
     }
 
+    #ifdef DEBUG_LR1
     printf("Merged sets: \n");
     for(int i=0;i<final.curr;i++){
         printSet(final.sets[i]);
     }
-    printf("Size of merged set of item sets: [%d]\n", final.curr);
+    #endif
+
+    printf("\nNumber of item sets after merging: [%d]\n", final.curr);
     // initialize the action table
     char *action[final.curr][getSize(terminals)];
     for(int i=0;i<final.curr;i++)
@@ -1034,11 +1048,15 @@ int main()
     // fill in the action table
 
     for(int i=0;i<sq.curr;i++){
+        #ifdef DEBUG_ACTION
         printf("The set being handled: ");
-        // sleep(1);
         printSet(sq.sets[i]);
+        #endif
+        // sleep(1);
         for(int j=0;j<getSize(sq.sets[i]);j++){
+            #ifdef DEBUG_ACTION
             printf("  The item being handled: [%s]\n",  sq.sets[i]->values[j]);
+            #endif
             // sleep(1);
             char tmp[MAX_UNIT_SIZE];
             tmp[0] = 0;
@@ -1047,22 +1065,32 @@ int main()
             
             int check = getStuffAfterDot(tmp, rem, sq.sets[i]->values[j]);
             if (check==1){
+                #ifdef DEBUG_ACTION
                 printf("    There is something left to be consumed in the item.\n");
+                #endif
                 // sleep(1);
                 // there is something after the dot
                 if (isPresent(terminals, tmp)==true){
+                    #ifdef DEBUG_ACTION
                     printf("      There is a terminal after the dot.\n");
+                    #endif
                     set tmpSet = GOTO(*sq.sets[i], tmp, p, nonTerminals, terminals);
+                    #ifdef DEBUG_ACTION
                     printf("      GOTO of set %d for terminal [%s]: \n", i, tmp);
                     printSet(&tmpSet);
+                    #endif
                     // sleep(1);
                     for(int k=0;k<sq.curr;k++){
+                        #ifdef DEBUG_ACTION
                         printf("        Item set %d: \n", k);
                         printSet(sq.sets[k]);
+                        #endif
                         // sleep(2);
 
                         if (areIdentical(&tmpSet, sq.sets[k])==true){
+                            #ifdef DEBUG_ACTION
                             printf("      Its GOTO matched to item set no. [%d]\n", k);
+                            #endif
                             char stringToAdd[10];
                             stringToAdd[0] = 0;
                             char strFromInt[MAX_UNIT_SIZE];
@@ -1080,7 +1108,9 @@ int main()
                 }
             }
             else{
+                #ifdef DEBUG_ACTION
                 printf("    Nothing is left to be consumed in the item.\n");
+                #endif
                 // sleep(1);
                 // there is nothing after the dot
                 // get head of the current item
@@ -1088,8 +1118,10 @@ int main()
                 getHead(head1, sq.sets[i]->values[j]);
                 if (strcmp(newStart, head1)==0)
                 {
+                    #ifdef DEBUG_ACTION
                     printf("    Head of the item is the start state.\n");
                     printf("    Adding 'accept' configuration.\n");
+                    #endif
                     // sleep(1);
                     // if head of item is the new start state, 
                     //then set action[i, &] to accept
@@ -1098,12 +1130,16 @@ int main()
                 else {
                     // head of item is not start state 
                     // some reduce operation to be added to the table.
+                    #ifdef DEBUG_ACTION
                     printf("    Head [%s] is not the start state.\n", head1);
+                    #endif
                     // sleep(1);
                     // get body of the item i.e. till dot
                     char bodyBeforeDot[MAX_UNIT_SIZE];
                     getBodyTillDot(bodyBeforeDot, sq.sets[i]->values[j]);
+                    #ifdef DEBUG_ACTION
                     printf("    Body is [%s]\n", bodyBeforeDot);
+                    #endif
                     for (int l = 0;l<getSize(p);l++){
                         
                         // get body of the production being tried
@@ -1119,7 +1155,9 @@ int main()
                         // has been consumed...
                         if (strcmp(head, head1)==0 && strcmp(body, bodyBeforeDot)==0)
                         {
+                            #ifdef DEBUG_ACTION
                             printf("      Production the item matched to: [%s]\n", p->values[l]);
+                            #endif
                             // sleep(1);
                             // get the lookahead of the item
                             char lookahead[MAX_UNIT_SIZE];
@@ -1131,7 +1169,9 @@ int main()
                             // add reduction rule to index i, indexOf(the lookahead found above)
                             strcat(stringToAdd, "r_");
                             strcat(stringToAdd, strFromInt);
+                            #ifdef DEBUG_ACTION
                             printf("      Reduction number being added: [%s]\n", strFromInt);
+                            #endif
                             // sleep(1);
                             if (strcmp(action[idx[i]][getIndex(terminals, lookahead)], stringToAdd)!=0)
                                 strcat(action[idx[i]][getIndex(terminals, lookahead)], stringToAdd);
