@@ -639,6 +639,71 @@ void init(set *s, int n){
     return;
 }
 
+void getCore(char *dst, char *src){
+
+    // works under the assumption that
+    // there will always be something before the 
+    // lookahead - kind of trivially always true
+
+    dst[0] = 0;
+    int counter = 0;
+    char tmp[MAX_UNIT_SIZE];
+
+    while(getToken(src, tmp, &counter)!=-1)
+    {
+        if(strcmp(tmp, "_")==0){
+            dst[strlen(dst) - 1] = 0; // removing the extra space
+            return;
+        }
+        else {
+            strcat(dst, tmp);
+            strcat(dst, " ");
+        }
+    }
+    printf("There is no lookahead! Something's not right.\n");
+    printf("Exiting...\n");
+    exit(7);
+}
+
+void getCoreSet(set *dst, set *src){
+
+    // return src's core in dst
+
+    for(int i=0;i<getSize(src);i++)
+    {
+        char tmp[MAX_UNIT_SIZE];
+        getCore(tmp, src->values[i]);
+        addElement(dst, tmp);
+    }
+    return;
+}
+bool isCoreSame(set *s1, set *s2){
+    set *core1 = (set*)malloc(sizeof(set));
+    init(core1, 50);
+
+    set *core2 = (set*)malloc(sizeof(set));
+    init(core2, 50);
+
+    getCoreSet(core1, s1);
+    getCoreSet(core2, s2);
+
+    printf("Set 1: \n");
+    printSet(s1);
+    printf("Core of set 1: \n");
+    printSet(core1);
+
+    printf("Set 2: \n");
+    printSet(s2);
+    printf("Core of set 2: \n");
+    printSet(core2);
+
+
+    if (areIdentical(core1, core2)==true)
+        return true;
+    else 
+        return false;
+}
+
 int main()
 {
     int n = 0;
@@ -738,10 +803,6 @@ int main()
             exit(3);
         }
         init(sq.sets[i], 50);
-        if (strlen(sq.sets[i]->values[0])!=0){
-             printf("Something's wrong\n");
-            exit(1);
-        }
     }
     sq.curr = 0;
 
@@ -840,11 +901,70 @@ int main()
     {
         printSet(sq.sets[i]);
     }
-    // printf("Count: %d\n", sq.curr);
+
+    // create an isDone array to maintain whether 
+    // a set has been handled or not
+
+    // for every set i
+    // mark it as done
+    // iterate over all sets i+1 to n
+    // see if the core is the same for both the sets
+    // if yes, take a union mark that inner set as done
+    // move on.
+    // if no, check the next inner set
+
+    // printf("Should be 0: %d\n", isCoreSame(sq.sets[11], sq.sets[12]));
     // exit(1);
-    // initialize the action table
-    char *action[sq.curr][getSize(terminals)];
+
+    bool isDone[sq.curr];
     for(int i=0;i<sq.curr;i++)
+    isDone[i] = false;
+
+    // the final set C'
+    setsq final;
+    final.max_size = MAX_NUM_TERMINALS;
+    final.sets = (set**)malloc(MAX_NUM_TERMINALS*sizeof(set*));
+    for(int i=0;i<final.max_size;i++){
+        final.sets[i] = (set*)malloc(sizeof(set));
+        if(final.sets[i]==NULL){
+            fprintf(stderr, "Failed to allocate memory for set.\n");
+            exit(3);
+        }
+        init(final.sets[i], 50);
+    }
+    final.curr = 0;
+
+    for (int i=0;i<sq.curr;i++)
+    {
+        if (isDone[i]==false){
+            // ith item set hasn't been handled yet
+            
+            // the accumulator (union) set
+            set *tmp = (set*)malloc(sizeof(set));
+            init(tmp, 100);
+            addSet(tmp, *sq.sets[i]); 
+    
+            for(int j=i+1;j<sq.curr;j++){
+                if (isCoreSame(sq.sets[i], sq.sets[j])==true){
+                    addSet(tmp, *sq.sets[j]);
+                    isDone[j] = true;
+                }
+            }
+            *final.sets[final.curr] = *tmp;
+            final.curr += 1;
+        }
+    }
+
+    printf("Merged sets: \n");
+    for(int i=0;i<final.curr;i++){
+        printSet(final.sets[i]);
+    }
+    printf("Size of merged set of item sets: [%d]\n", final.curr);
+    
+    
+    // initialize the action table
+    char *action[final.curr][getSize(terminals)];
+    for(int i=0;i<final.curr;i++)
     {
         for(int j=0;j<getSize(terminals);j++)
         {
@@ -855,27 +975,27 @@ int main()
     // exit(9);
     // fill in the action table
 
-    for(int i=0;i<sq.curr;i++){
+    for(int i=0;i<final.curr;i++){
         printf("The set being handled: ");
         // sleep(1);
-        printSet(sq.sets[i]);
-        for(int j=0;j<getSize(sq.sets[i]);j++){
-            printf("  The item being handled: [%s]\n",  sq.sets[i]->values[j]);
+        printSet(final.sets[i]);
+        for(int j=0;j<getSize(final.sets[i]);j++){
+            printf("  The item being handled: [%s]\n",  final.sets[i]->values[j]);
             // sleep(1);
             char *tmp = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
             tmp[0] = 0;
             char *rem = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
 
-            int check = getStuffAfterDot(tmp, rem, sq.sets[i]->values[j]);
+            int check = getStuffAfterDot(tmp, rem, final.sets[i]->values[j]);
             if (check==1){
                 printf("    There is something left to be consumed in the item.\n");
                 // sleep(1);
                 // there is something after the dot
                 if (isPresent(terminals, tmp)==true){
                     printf("      There is a terminal after the dot.\n");
-                    set tmpSet = GOTO(*sq.sets[i], tmp, p, nonTerminals, terminals);
-                    for(int k=0;k<sq.curr;k++){
-                        if (areIdentical(&tmpSet, sq.sets[k])==true){
+                    set tmpSet = GOTO(*final.sets[i], tmp, p, nonTerminals, terminals);
+                    for(int k=0;k<final.curr;k++){
+                        if (areIdentical(&tmpSet, final.sets[k])==true){
                             printf("      Its GOTO matched to item set no. [%d]\n", k);
                             char stringToAdd[10];
                             stringToAdd[0] = 0;
@@ -898,7 +1018,7 @@ int main()
                 // there is nothing after the dot
                 // get head of the current item
                 char * head1 = (char*)malloc(MAX_UNIT_SIZE*sizeof(char));
-                getHead(head1, sq.sets[i]->values[j]);
+                getHead(head1, final.sets[i]->values[j]);
                 if (strcmp(newStart, head1)==0)
                 {
                     printf("    Head of the item is the start state.\n");
@@ -915,7 +1035,7 @@ int main()
                     // sleep(1);
                     // get body of the item i.e. till dot
                     char bodyBeforeDot[MAX_UNIT_SIZE];
-                    getBodyTillDot(bodyBeforeDot, sq.sets[i]->values[j]);
+                    getBodyTillDot(bodyBeforeDot, final.sets[i]->values[j]);
                     printf("    Body is [%s]\n", bodyBeforeDot);
                     for (int l = 0;l<getSize(p);l++){
                         
@@ -936,7 +1056,7 @@ int main()
                             // sleep(1);
                             // get the lookahead of the item
                             char lookahead[MAX_UNIT_SIZE];
-                            getLookahead(lookahead, sq.sets[i]->values[j]);
+                            getLookahead(lookahead, final.sets[i]->values[j]);
                             
                             if (strlen(action[i][getIndex(terminals, lookahead)])>0)
                                 strcat(action[i][getIndex(terminals, lookahead)], ",");
@@ -963,7 +1083,7 @@ int main()
     }
     printf("\n");
     
-    for(int i=0;i<sq.curr;i++)
+    for(int i=0;i<final.curr;i++)
     {
         printf("%d   ", i);
         for(int j=0;j<getSize(terminals);j++){
@@ -974,17 +1094,17 @@ int main()
         }
         printf("\n");
     }
-    exit(1);
 
+    exit(1);
     // goto table
-    int gotoTable[sq.curr][getSize(nonTerminals)];
-    for(int i=0;i<sq.curr;i++)
+    int gotoTable[final.curr][getSize(nonTerminals)];
+    for(int i=0;i<final.curr;i++)
     {
         for(int j=0;j<getSize(nonTerminals);j++){
             gotoTable[i][j] = -1;
-            set tmp = GOTO(*sq.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
-            for(int k=0;k<sq.curr;k++){
-                if (areIdentical(&tmp, sq.sets[k])==true){
+            set tmp = GOTO(*final.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
+            for(int k=0;k<final.curr;k++){
+                if (areIdentical(&tmp, final.sets[k])==true){
                     gotoTable[i][j] = k;
                 }
             }
@@ -997,8 +1117,7 @@ int main()
     }
 
     printf("\n");
-    
-    for(int i=0;i<sq.curr;i++)
+    for(int i=0;i<final.curr;i++)
     {
         printf("%d   ", i);
         for(int j=0;j<getSize(nonTerminals);j++){
@@ -1009,7 +1128,6 @@ int main()
         }
         printf("\n");
     }
-
 
 
 
