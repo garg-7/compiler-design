@@ -719,6 +719,7 @@ int main()
     strcat(augmentationProduction, " ");
     strcat(augmentationProduction, start);
     addElement(p, augmentationProduction);
+    addElement(nonTerminals, newStart);
 
     printf("The augmented grammar: ");
     printSet(p);
@@ -961,8 +962,7 @@ int main()
             printf("%s ", terminals->values[i]);
     }
     printf("\n");
-    // printf("Count: %d\n", sq.curr);
-    // exit(1);
+    
     for(int i=0;i<sq.curr;i++)
     {
         printf("%d   ", i);
@@ -974,5 +974,43 @@ int main()
         }
         printf("\n");
     }
+    exit(1);
+
+    // goto table
+    int gotoTable[sq.curr][getSize(nonTerminals)];
+    for(int i=0;i<sq.curr;i++)
+    {
+        for(int j=0;j<getSize(nonTerminals);j++){
+            gotoTable[i][j] = -1;
+            set tmp = GOTO(*sq.sets[i], nonTerminals->values[j], p, nonTerminals, terminals);
+            for(int k=0;k<sq.curr;k++){
+                if (areIdentical(&tmp, sq.sets[k])==true){
+                    gotoTable[i][j] = k;
+                }
+            }
+        }
+    }
+
+    printf("    ");
+    for(int i=0;i<getSize(nonTerminals);i++){
+            printf("%s ", nonTerminals->values[i]);
+    }
+
+    printf("\n");
+    
+    for(int i=0;i<sq.curr;i++)
+    {
+        printf("%d   ", i);
+        for(int j=0;j<getSize(nonTerminals);j++){
+            if (gotoTable[i][j]>-1)
+                printf("%d ", gotoTable[i][j]);
+            else
+                printf("NULL ");
+        }
+        printf("\n");
+    }
+
+
+
 
 }
