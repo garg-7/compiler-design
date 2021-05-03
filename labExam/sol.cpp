@@ -246,7 +246,6 @@ int main()
 #ifdef DEBUG
                 printf("block %d\n", i);
 #endif
-
                 // OUT calculation
 
                 // iterate over all the successors
@@ -314,7 +313,9 @@ int main()
         }
     }
 
-    for (int i = 0; i < b - 2; i++)
+    out[ENTRY] = in[0];
+    in[8] = out[2];
+    for (int i = 0; i < b; i++)
     {
         printf("Basic block %d:\n", i);
         set<char>::iterator t;
