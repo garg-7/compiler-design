@@ -3,17 +3,20 @@
 #include <string.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include <set>
 #include <algorithm>
 
 #define ENTRY 7
 #define EXIT 8
+// #define DEBUG
 
 using namespace std;
-typedef struct basicBlock 
+
+typedef struct basicBlock
 {
-    char ** lines;
+    char **lines;
     int *succ;
 } BB;
 
@@ -70,18 +73,18 @@ int getToken(char *source, char *tok, int *loc)
 int main()
 {
     // printf("Enter the num of BB: ");
-    int b = 7+2; // for entry and exit
-    // scanf("%d", &b);
+    int b = 7 + 2; // 2 for entry and exit
+
     printf("Number of basic blocks: %d\n", b);
-    BB * blocks = (BB*)malloc(b* sizeof(BB));    
-    for (int i=0;i<b;i++)
+    BB *blocks = (BB *)malloc(b * sizeof(BB));
+    for (int i = 0; i < b; i++)
     {
-        blocks[i].lines = (char**)malloc(10*sizeof(char*));
-        blocks[i].succ = (int*)malloc(10*sizeof(int));
-        for (int j=0;j<10;j++)
+        blocks[i].lines = (char **)malloc(10 * sizeof(char *));
+        blocks[i].succ = (int *)malloc(10 * sizeof(int));
+        for (int j = 0; j < 10; j++)
         {
             blocks[i].succ[j] = -1;
-            blocks[i].lines[j] = (char*) malloc(50*sizeof(char));
+            blocks[i].lines[j] = (char *)malloc(50 * sizeof(char));
             blocks[i].lines[j][0] = 0;
         }
     }
@@ -97,7 +100,7 @@ int main()
 
     strcpy(blocks[2].lines[0], "b = b + 1");
     strcpy(blocks[2].lines[1], "x = 0");
-    blocks[2].succ[0] = 8;  // exit
+    blocks[2].succ[0] = 8; // exit
 
     strcpy(blocks[3].lines[0], "t = a + 1");
     strcpy(blocks[3].lines[1], "b = t");
@@ -122,7 +125,7 @@ int main()
     // {
     //     printf("BB: %d\n", i);
     //     for (int j=0;j<10;j++)
-    //     {   
+    //     {
     //         char tmp[100];
     //         strcpy(tmp, blocks[i].lines[j]);
     //         if (tmp[0]!=0)
@@ -137,30 +140,26 @@ int main()
 
     set<char> def[b];
     set<char> use[b];
-    for (int i=0;i<b;i++)
+    for (int i = 0; i < b; i++)
     {
-        for (int j=0;j<10;j++)
+        for (int j = 0; j < 10; j++)
         {
-            if (blocks[i].lines[j][0]==0)
-            break;
+            if (blocks[i].lines[j][0] == 0)
+                break;
 
             int counter = 0;
             char tmp[50];
-            
+
             getToken(blocks[i].lines[j], tmp, &counter);
 
-            if (strcmp(tmp, "if")==0)
+            if (strcmp(tmp, "if") == 0)
             {
-                // printf("Block %d in if.\n", i);
-                while(getToken(blocks[i].lines[j], tmp, &counter)!=-1)
+                while (getToken(blocks[i].lines[j], tmp, &counter) != -1)
                 {
-                    // printf("block %d in if tmp: %s\n", i, tmp);
-                    // printf("Len: %d\n", strlen(tmp) );
-                    if (strlen(tmp)==1 && isalpha(tmp[0])!=0)
+                    if (strlen(tmp) == 1 && isalpha(tmp[0]) != 0)
                     {
-                        // printf("len was 1\n");
-                        if (def[i].find(tmp[0])!=def[i].end()==true)
-                        ;
+                        if (def[i].find(tmp[0]) != def[i].end() == true)
+                            ;
                         else
                         {
                             use[i].insert(tmp[0]);
@@ -168,19 +167,19 @@ int main()
                     }
                 }
             }
-            else 
+            else
             {
-                if (strlen(tmp)==1 && isalpha(tmp[0]))
+                if (strlen(tmp) == 1 && isalpha(tmp[0]))
                 {
                     def[i].insert(tmp[0]);
                     char firstChar = tmp[0];
-                    while(getToken(blocks[i].lines[j], tmp, &counter)!=-1)
+                    while (getToken(blocks[i].lines[j], tmp, &counter) != -1)
                     {
-                        if (strlen(tmp)==1 && isalpha(tmp[0])!=0)
+                        if (strlen(tmp) == 1 && isalpha(tmp[0]) != 0)
                         {
-                            if (def[i].find(tmp[0])!=def[i].end()==true)
+                            if (def[i].find(tmp[0]) != def[i].end() == true)
                             {
-                                if (tmp[0]==firstChar)
+                                if (tmp[0] == firstChar)
                                 {
                                     // if also the first character then
                                     // insert in use too
@@ -188,18 +187,17 @@ int main()
                                 }
                             }
                             else
-                            {   
+                            {
                                 // not previously defined in this block
                                 // so add to use
                                 use[i].insert(tmp[0]);
                             }
                         }
                     }
-
                 }
 
-
-                else {
+                else
+                {
                     // some GOTO kind of a statement
                     // so skipping i.e. nothing to do
                 }
@@ -207,53 +205,61 @@ int main()
         }
     }
 
-    for(int i=0;i<b-2;i++)
+    for (int i = 0; i < b - 2; i++)
     {
-        printf("Basic %d: ", i);
+        printf("Basic block %d: \n", i);
         set<char>::iterator t;
-        printf("The use set: ");
-        for(t = use[i].begin();t != use[i].end(); ++ t)
+        printf("  The use set: ");
+        for (t = use[i].begin(); t != use[i].end(); ++t)
         {
-            printf("%c, ", *t);
+            printf("%c ", *t);
         }
         printf("\n");
-        
-        printf("The def set: ");
-        for(t = def[i].begin();t != def[i].end(); ++ t)
+
+        printf("  The def set: ");
+        for (t = def[i].begin(); t != def[i].end(); ++t)
         {
-            printf("%c, ", *t);
+            printf("%c ", *t);
         }
-        printf("\n");
+        printf("\n\n");
     }
 
     set<char> in[b];
     set<char> out[b];
 
-    // the liveness analysis algorithm to find out the 
+    // the liveness analysis algorithm to find out the
     // IN and OUT for all the basic blocks
 
     bool changeHappened = true;
-    while(changeHappened==true)
-    {   
+    int iteration = 1;
+    while (changeHappened == true)
+    {
+#ifdef DEBUG
+                printf("----------Iteration: %d------------\n", iteration++);
+#endif
         changeHappened = false;
-        for (int i=0;i<b;i++)
+        for (int i = 0; i < b; i++)
         {
-            if (i!=EXIT && i!=ENTRY)
+            if (i != EXIT && i != ENTRY)
             {
+
+#ifdef DEBUG
+                printf("block %d\n", i);
+#endif
 
                 // OUT calculation
 
                 // iterate over all the successors
                 set<char> tmp;
-                for(int j=0;j<10;j++)
+                for (int j = 0; j < 10; j++)
                 {
-                    if (blocks[i].succ[j]==-1)
-                    break;
+                    if (blocks[i].succ[j] == -1)
+                        break;
 
-                    // add the successor's IN elements to the out of 
+                    // add the successor's IN elements to the out of
                     // the current basic block
                     set<char>::iterator t;
-                    for(t = in[blocks[i].succ[j]].begin();t != in[blocks[i].succ[j]].end(); ++ t)
+                    for (t = in [blocks[i].succ[j]].begin(); t != in[blocks[i].succ[j]].end(); ++t)
                     {
                         tmp.insert(*t);
                     }
@@ -261,43 +267,69 @@ int main()
 
                 out[i] = tmp;
 
+                set<char>::iterator t;
+#ifdef DEBUG
+                printf("  OUT: \n");
+                for (t = out[i].begin(); t != out[i].end(); ++t)
+                {
+                    printf("    %c ", *t);
+                }
+                printf("\n");
+#endif
                 // IN calculation
-                set <char> prevIN = in[i];
-                
+                set<char> prevIN = in[i];
+
+#ifdef DEBUG
+                printf("  IN set before\n");
+                for (t = in[i].begin(); t != in[i].end(); ++t)
+                {
+                    printf("    %c ", *t);
+                }
+                printf("\n");
+
+#endif
                 in[i] = use[i];
                 // difference between OUT and def for the basic blocks
                 set<char> diff;
                 set_difference(out[i].begin(), out[i].end(), def[i].begin(), def[i].end(), inserter(diff, diff.end()));
 
-                set<char>::iterator t;
-                for(t = diff.begin();t != diff.end(); ++ t)
+                // set<char>::iterator t;
+                for (t = diff.begin(); t != diff.end(); ++t)
                 {
                     in[i].insert(*t);
                 }
+#ifdef DEBUG
+                printf("  IN set after\n");
 
-                if (prevIN.size() > in[i].size())
+                for (t = in[i].begin(); t != in[i].end(); ++t)
+                {
+                    printf("    %c ", *t);
+                }
+                printf("\n");
+
+#endif
+                if (prevIN.size() < in[i].size())
                     changeHappened = true;
             }
         }
     }
 
-
-    for(int i=0;i<b-2;i++)
+    for (int i = 0; i < b - 2; i++)
     {
-        printf("Basic %d: ", i);
+        printf("Basic block %d:\n", i);
         set<char>::iterator t;
-        printf("The IN set: ");
-        for(t = in[i].begin();t != in[i].end(); ++ t)
+        printf("  The IN set: ");
+        for (t = in[i].begin(); t != in[i].end(); ++t)
         {
-            printf("%c, ", *t);
+            printf("%c ", *t);
         }
         printf("\n");
-        
-        printf("The OUT set: ");
-        for(t = out[i].begin();t != out[i].end(); ++ t)
+
+        printf("  The OUT set: ");
+        for (t = out[i].begin(); t != out[i].end(); ++t)
         {
-            printf("%c, ", *t);
+            printf("%c ", *t);
         }
-        printf("\n");
+        printf("\n\n");
     }
 }
