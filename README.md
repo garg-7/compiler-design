@@ -1,2 +1,3 @@
-# Compilers
-Compiler Design Coursework Trimester 3
+# Compiler Design
+Compiler Design (CS335) Coursework
+Trimester 3 (2020-21)
